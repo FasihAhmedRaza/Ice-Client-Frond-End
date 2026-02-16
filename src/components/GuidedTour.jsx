@@ -16,68 +16,55 @@ const TOUR_STEPS = [
     },
     {
         title: 'The Sculpture Wizard',
-        description: 'This wizard walks you through 7 easy steps to design your perfect ice sculpture. Let\'s explore each step!',
+        description: 'This wizard walks you through 5 easy steps to design your perfect ice sculpture. Let\'s explore each step!',
         target: '.wizard-card',
         position: 'center',
-        wizardStep: 0,
+        wizardStep: 1,
         openWizard: true,
+        setBuildModeValue: 'custom-build',
     },
     {
         title: 'Step 1 — Choose a Category',
         description: 'Start by picking a sculpture category: Luges, Ice Bars, Ice Cubes, Showpieces, or Wedding designs.',
         target: '.wizard-body',
         position: 'right',
-        wizardStep: 0,
+        wizardStep: 1,
     },
     {
         title: 'Browse Templates',
         description: 'After selecting a category, browse through our collection of 70+ professional templates. Click any template to select it, or scroll down to upload your own custom image.',
         target: '.wizard-body',
         position: 'right',
-        wizardStep: 0,
+        wizardStep: 1,
         selectCategory: 'Ludges',
     },
     {
-        title: 'Step 2 — Add a Base',
-        description: 'Choose whether you want a base for your sculpture. If yes, browse our collection of base designs or upload your own.',
-        target: '.wizard-body',
-        position: 'right',
-        wizardStep: 1,
-    },
-    {
-        title: 'Step 3 — Add a Topper',
-        description: 'Optionally add a topper decoration to your sculpture. Pick from our templates or upload a custom one.',
+        title: 'Step 2 — Extras (Base, Topper & Logo)',
+        description: 'This combined step lets you add a base, topper, and logo to your sculpture — all on one page. Toggle each option on or off, and pick from templates or upload your own.',
         target: '.wizard-body',
         position: 'right',
         wizardStep: 2,
     },
     {
-        title: 'Step 4 — Add a Logo',
-        description: 'Want to include a logo? Toggle it on and upload your logo image to be incorporated into the design.',
+        title: 'Step 3 — Reference Images',
+        description: 'Upload any reference photos or inspiration images. Add notes to guide the AI on what you\'re looking for.',
         target: '.wizard-body',
         position: 'right',
         wizardStep: 3,
     },
     {
-        title: 'Step 5 — Reference Images',
-        description: 'Upload any reference photos or inspiration images. Add notes to guide the AI on what you\'re looking for.',
+        title: 'Step 4 — Output Settings',
+        description: 'Choose your preferred frame shape (aspect ratio) and image quality (resolution). Add any special instructions for the AI.',
         target: '.wizard-body',
         position: 'right',
         wizardStep: 4,
     },
     {
-        title: 'Step 6 — Output Settings',
-        description: 'Choose your preferred frame shape (aspect ratio) and image quality (resolution). Add any special instructions for the AI.',
-        target: '.wizard-body',
-        position: 'right',
-        wizardStep: 5,
-    },
-    {
-        title: 'Step 7 — Review & Generate',
+        title: 'Step 5 — Review & Generate',
         description: 'Review all your selections in one place. When everything looks good, hit "Generate Preview" to create your AI render!',
         target: '.wizard-body',
         position: 'right',
-        wizardStep: 6,
+        wizardStep: 5,
     },
     {
         title: 'Chat with the AI',
@@ -86,9 +73,21 @@ const TOUR_STEPS = [
         position: 'top',
         closeWizard: true,
     },
+    {
+        title: '❤️ Favourites Gallery',
+        description: 'Tap this glowing card to explore our team\'s hand-picked best ice sculpture renders. Get inspired before you build!',
+        target: '.fav-card',
+        position: 'top',
+    },
+    {
+        title: '💬 Ice Assistant Chatbot',
+        description: 'Need help? This floating chat assistant can answer questions about ice sculptures, guide you through features, and offer suggestions — anytime!',
+        target: '.ice-chat-fab',
+        position: 'top',
+    },
 ];
 
-const GuidedTour = ({ onComplete, setWizardOpen, setWizardStep, setSculptureCategory }) => {
+const GuidedTour = ({ onComplete, setWizardOpen, setWizardStep, setBuildMode, setSculptureCategory }) => {
     const [step, setStep] = useState(0);
     const [targetRect, setTargetRect] = useState(null);
     const [isVisible, setIsVisible] = useState(false);
@@ -99,6 +98,9 @@ const GuidedTour = ({ onComplete, setWizardOpen, setWizardStep, setSculptureCate
     useEffect(() => {
         if (currentStep.openWizard || currentStep.wizardStep !== undefined) {
             setWizardOpen(true);
+            if (currentStep.setBuildModeValue && setBuildMode) {
+                setBuildMode(currentStep.setBuildModeValue);
+            }
             if (currentStep.wizardStep !== undefined) {
                 setWizardStep(currentStep.wizardStep);
             }
@@ -108,9 +110,10 @@ const GuidedTour = ({ onComplete, setWizardOpen, setWizardStep, setSculptureCate
         }
         if (currentStep.closeWizard) {
             setWizardOpen(false);
+            if (setBuildMode) setBuildMode('');
             if (setSculptureCategory) setSculptureCategory('');
         }
-    }, [step, currentStep, setWizardOpen, setWizardStep, setSculptureCategory]);
+    }, [step, currentStep, setWizardOpen, setWizardStep, setBuildMode, setSculptureCategory]);
 
     const measureTarget = useCallback(() => {
         const el = document.querySelector(currentStep.target);
@@ -174,6 +177,9 @@ const GuidedTour = ({ onComplete, setWizardOpen, setWizardStep, setSculptureCate
 
     // Compute tooltip position
     const getTooltipStyle = () => {
+        const isMobile = window.innerWidth <= 600;
+        const tooltipWidth = isMobile ? window.innerWidth - 24 : 360;
+
         if (!targetRect) {
             return {
                 top: '50%',
@@ -182,11 +188,21 @@ const GuidedTour = ({ onComplete, setWizardOpen, setWizardStep, setSculptureCate
             };
         }
 
-        const padding = 16;
-        const tooltipWidth = 360;
+        const padding = isMobile ? 12 : 16;
         const pos = currentStep.position;
 
         let style = {};
+
+        // On mobile, always place tooltip at bottom of viewport for wizard steps
+        if (isMobile && (pos === 'right' || pos === 'center')) {
+            style.bottom = padding;
+            style.left = padding / 2;
+            style.right = padding / 2;
+            style.width = `calc(100vw - ${padding}px)`;
+            style.maxHeight = '40vh';
+            style.overflowY = 'auto';
+            return style;
+        }
 
         if (pos === 'bottom') {
             style.top = targetRect.top + targetRect.height + padding;
@@ -217,6 +233,13 @@ const GuidedTour = ({ onComplete, setWizardOpen, setWizardStep, setSculptureCate
             style.top = targetRect.top + targetRect.height / 2;
             style.left = targetRect.left + targetRect.width / 2;
             style.transform = 'translate(-50%, -50%)';
+        }
+
+        // On mobile, clamp left/right for top/bottom positions too
+        if (isMobile && (pos === 'top' || pos === 'bottom')) {
+            style.left = padding / 2;
+            style.right = padding / 2;
+            style.width = `calc(100vw - ${padding}px)`;
         }
 
         return style;

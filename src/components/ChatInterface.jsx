@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import api from '../api';
-import { Send, Mic, Image as ImageIcon, X, ThumbsUp, ThumbsDown, Lightbulb, Wand2, Sun, Menu, Settings, ChevronDown, ChevronRight, Check, Sparkles, Video, Edit2, Upload, Trash2, ArrowRight, ArrowLeft, Layers, Paintbrush, RotateCcw, Gem, Zap, Eye, Clock, PanelLeftOpen, PanelLeftClose, Download, Maximize2 } from 'lucide-react';
+import { Send, Mic, Image as ImageIcon, X, ThumbsUp, ThumbsDown, Lightbulb, Wand2, Sun, Menu, Settings, ChevronDown, ChevronRight, Check, Sparkles, Video, Edit2, Upload, Trash2, ArrowRight, ArrowLeft, Layers, Paintbrush, RotateCcw, Gem, Zap, Eye, Clock, PanelLeftOpen, PanelLeftClose, Download, Maximize2, Type, ImagePlus, Hammer, Heart } from 'lucide-react';
 import FeedbackModal from './FeedbackModal';
 import ImagePreviewModal from './ImagePreviewModal';
 import GuidedTour from './GuidedTour';
+import IceChatWidget from './IceChatWidget';
+import ShowcaseGallery from './ShowcaseGallery';
+import './ShowcaseGallery.css';
 import AspectRatioSelector from './AspectRatioSelector';
 import ResolutionSelector from './ResolutionSelector';
 import { API_BASE_URL } from '../config';
@@ -24,14 +27,41 @@ const INITIAL_PANEL = {
     additionalPrompt: '',
 };
 
-const STEPS = [
-    { id: 'sculpture', label: 'Sculpture', icon: '1' },
-    { id: 'base', label: 'Base', icon: '2' },
-    { id: 'topper', label: 'Topper', icon: '3' },
-    { id: 'logo', label: 'Logo', icon: '4' },
-    { id: 'refs', label: 'References', icon: '5' },
-    { id: 'details', label: 'Details', icon: '6' },
-    { id: 'review', label: 'Review', icon: '7' },
+const STEPS_CUSTOM = [
+    { id: 'mode', label: 'Mode', icon: '1' },
+    { id: 'sculpture', label: 'Sculpture', icon: '2' },
+    { id: 'extras', label: 'Extras', icon: '3' },
+    { id: 'refs', label: 'References', icon: '4' },
+    { id: 'details', label: 'Details', icon: '5' },
+    { id: 'review', label: 'Review', icon: '6' },
+];
+
+const STEPS_TEXT = [
+    { id: 'mode', label: 'Mode', icon: '1' },
+    { id: 'describe', label: 'Describe', icon: '2' },
+    { id: 'details', label: 'Details', icon: '3' },
+    { id: 'review', label: 'Review', icon: '4' },
+];
+
+const STEPS_IMAGE = [
+    { id: 'mode', label: 'Mode', icon: '1' },
+    { id: 'upload', label: 'Upload', icon: '2' },
+    { id: 'describe', label: 'Describe', icon: '3' },
+    { id: 'details', label: 'Details', icon: '4' },
+    { id: 'review', label: 'Review', icon: '5' },
+];
+
+const STEPS_VIDEO = [
+    { id: 'mode', label: 'Mode', icon: '1' },
+    { id: 'source', label: 'Source', icon: '2' },
+    { id: 'review', label: 'Review', icon: '3' },
+];
+
+const STEPS_EDIT = [
+    { id: 'mode', label: 'Mode', icon: '1' },
+    { id: 'upload', label: 'Upload', icon: '2' },
+    { id: 'edits', label: 'Edits', icon: '3' },
+    { id: 'review', label: 'Review', icon: '4' },
 ];
 
 const ChatInterface = () => {
@@ -55,10 +85,23 @@ const ChatInterface = () => {
     const [wantTopper, setWantTopper] = useState(false);
     const [wantLogo, setWantLogo] = useState(false);
 
+    const [buildMode, setBuildMode] = useState(''); // 'text-to-image', 'image-to-image', 'custom-build'
+    const [textPrompt, setTextPrompt] = useState('');
+    const [imgToImgFiles, setImgToImgFiles] = useState([]);
+    const [videoSourceType, setVideoSourceType] = useState('text');
+    const [videoPrompt, setVideoPrompt] = useState('');
+    const [videoFile, setVideoFile] = useState(null);
+    const [editFile, setEditFile] = useState(null);
+    const [editPrompt, setEditPrompt] = useState('');
+    const videoFileInputRef = useRef(null);
+    const editFileInputRef = useRef(null);
+    const [imgToImgPrompt, setImgToImgPrompt] = useState('');
+    const imgToImgInputRef = useRef(null);
     const [imagePrompts, setImagePrompts] = useState({});
     const [activeTaskIds, setActiveTaskIds] = useState([]);
     const [showTour, setShowTour] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
+    const [showcaseOpen, setShowcaseOpen] = useState(false);
     const [generatedHistory, setGeneratedHistory] = useState(() => {
         try {
             return JSON.parse(localStorage.getItem('cynx_image_history') || '[]');
@@ -621,7 +664,142 @@ const ChatInterface = () => {
         setWantBase(false);
         setWantTopper(false);
         setWantLogo(false);
+        setTextPrompt('');
+        setImgToImgFiles([]);
+        setImgToImgPrompt('');
     };
+
+    // Get the active steps array based on build mode
+    const getSteps = () => {
+        if (buildMode === 'text-to-image') return STEPS_TEXT;
+        if (buildMode === 'image-to-image') return STEPS_IMAGE;
+        if (buildMode === 'video') return STEPS_VIDEO;
+        if (buildMode === 'edit') return STEPS_EDIT;
+        return STEPS_CUSTOM;
+    };
+
+    // Video generate
+    const handleVideoGenerate = () => {
+        setWizardOpen(false);
+        if (videoSourceType === 'text') {
+            const prompt = videoPrompt.trim()
+                ? `Create a rotating video of an ice sculpture based on this description:\n${videoPrompt}`
+                : 'Create a rotating video of an ice sculpture';
+            handleSubmit(null, { input: prompt, files: [], imagePrompts: {} });
+        } else if (videoFile) {
+            const prompt = 'Create a rotating 360° video from this ice sculpture image.';
+            handleSubmit(null, { input: prompt, files: [videoFile], imagePrompts: { 0: 'Source image for video generation' } });
+        }
+    };
+
+    // Edit/Refine generate
+    const handleEditGenerate = () => {
+        setWizardOpen(false);
+        const prompt = editPrompt.trim()
+            ? `Edit this ice sculpture image with the following changes:\n${editPrompt}`
+            : 'Refine and enhance this ice sculpture image';
+        const filesToSend = editFile ? [editFile] : [];
+        const prompts = editFile ? { 0: 'Image to edit/refine' } : {};
+        handleSubmit(null, { input: prompt, files: filesToSend, imagePrompts: prompts });
+    };
+
+    const currentSteps = getSteps();
+
+    // Text-to-Image generate
+    const handleTextToImageGenerate = () => {
+        setWizardOpen(false);
+        const prompt = textPrompt.trim()
+            ? `Create an ice sculpture render based on this description:\n${textPrompt}${panel.additionalPrompt ? '\n' + panel.additionalPrompt : ''}`
+            : 'Create an ice sculpture render';
+        handleSubmit(null, { input: prompt, files: [], imagePrompts: {} });
+    };
+
+    // Image-to-Image generate
+    const handleImageToImageGenerate = () => {
+        setWizardOpen(false);
+        const filesToSend = [...imgToImgFiles];
+        const prompts = {};
+        imgToImgFiles.forEach((_, i) => {
+            prompts[i] = `Reference image ${i + 1} — recreate this as a clear transparent ice sculpture`;
+        });
+        const prompt = imgToImgPrompt.trim()
+            ? `Transform these reference images into an ice sculpture render:\n${imgToImgPrompt}${panel.additionalPrompt ? '\n' + panel.additionalPrompt : ''}`
+            : `Transform these reference images into a clear transparent ice sculpture render.${panel.additionalPrompt ? '\n' + panel.additionalPrompt : ''}`;
+        handleSubmit(null, { input: prompt, files: filesToSend, imagePrompts: prompts });
+    };
+
+    const handleImgToImgFileChange = (e) => {
+        if (e.target.files) {
+            const selected = Array.from(e.target.files);
+            setImgToImgFiles(prev => {
+                const combined = [...prev, ...selected].slice(0, 3);
+                return combined;
+            });
+        }
+    };
+
+    const removeImgToImgFile = (index) => {
+        setImgToImgFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const renderDetailsStep = () => (
+        <div className="wizard-step-content">
+            <p className="wizard-hint">Configure output settings and add any additional instructions.</p>
+            <div className="wizard-setting-group">
+                <span className="wizard-setting-label">Frame Shape (Aspect Ratio)</span>
+                <p className="wizard-setting-desc">Choose how your image will be shaped</p>
+                <div className="wizard-ratio-grid">
+                    {[
+                        { label: '1:1', w: 1, h: 1, name: 'Square', desc: 'Social media posts' },
+                        { label: '9:16', w: 9, h: 16, name: 'Portrait Tall', desc: 'Phone screens, stories' },
+                        { label: '16:9', w: 16, h: 9, name: 'Landscape Wide', desc: 'Presentations, desktop' },
+                        { label: '4:3', w: 4, h: 3, name: 'Classic', desc: 'Standard photos' },
+                        { label: '3:4', w: 3, h: 4, name: 'Portrait', desc: 'Vertical photos' },
+                        { label: '2:3', w: 2, h: 3, name: 'Tall Portrait', desc: 'Posters, prints' },
+                        { label: '3:2', w: 3, h: 2, name: 'Wide Photo', desc: 'DSLR standard' },
+                        { label: '4:5', w: 4, h: 5, name: 'Instagram', desc: 'Instagram portrait' },
+                        { label: '5:4', w: 5, h: 4, name: 'Landscape', desc: 'Landscape photos' },
+                        { label: '21:9', w: 21, h: 9, name: 'Ultra Wide', desc: 'Cinematic, banners' },
+                    ].map((r) => (
+                        <div key={r.label} className={`wizard-ratio-card ${aspectRatio === r.label ? 'selected' : ''}`} onClick={() => setAspectRatio(r.label)}>
+                            <div className="wizard-ratio-preview" style={{ aspectRatio: `${r.w} / ${r.h}`, width: r.w >= r.h ? '100%' : 'auto', height: r.h > r.w ? '100%' : 'auto', maxWidth: '100%', maxHeight: '100%' }}>
+                                <span className="wizard-ratio-value">{r.label}</span>
+                            </div>
+                            <span className="wizard-ratio-name">{r.name}</span>
+                            <span className="wizard-ratio-desc">{r.desc}</span>
+                            {aspectRatio === r.label && <div className="wizard-ratio-check"><Check size={12} /></div>}
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div className="wizard-setting-group">
+                <span className="wizard-setting-label">Image Quality (Resolution)</span>
+                <p className="wizard-setting-desc">Higher resolution = more detail but slower generation</p>
+                <div className="wizard-res-grid">
+                    {[
+                        { label: '1K', name: 'Standard', desc: 'Fast generation, good for previews', pixels: '1024px', icon: '🔵' },
+                        { label: '2K', name: 'High Definition', desc: 'Recommended — great balance of quality & speed', pixels: '2048px', icon: '🟢', recommended: true },
+                        { label: '4K', name: 'Ultra HD', desc: 'Maximum detail, best for final renders', pixels: '4096px', icon: '🟡' },
+                    ].map((r) => (
+                        <div key={r.label} className={`wizard-res-card ${resolution === r.label ? 'selected' : ''}`} onClick={() => setResolution(r.label)}>
+                            {r.recommended && <span className="wizard-res-badge">Recommended</span>}
+                            <div className="wizard-res-icon">{r.icon}</div>
+                            <span className="wizard-res-label">{r.label}</span>
+                            <span className="wizard-res-name">{r.name}</span>
+                            <span className="wizard-res-desc">{r.desc}</span>
+                            <span className="wizard-res-pixels">{r.pixels}</span>
+                            {resolution === r.label && <div className="wizard-ratio-check"><Check size={12} /></div>}
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div className="wizard-setting-group">
+                <span className="wizard-setting-label">Additional Instructions</span>
+                <p className="wizard-setting-desc">Any special requests for the AI? (Optional)</p>
+                <textarea className="rp-textarea" value={panel.additionalPrompt} onChange={(e) => updatePanel('additionalPrompt', e.target.value)} placeholder="E.g. 'Make it 3 feet tall with blue lighting'" rows={4} />
+            </div>
+        </div>
+    );
 
     const handleDeleteHistory = (id) => {
         setGeneratedHistory(prev => {
@@ -668,14 +846,14 @@ const ChatInterface = () => {
                     <button className="history-toggle-btn" onClick={() => setHistoryOpen(prev => !prev)} title="Image History">
                         {historyOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
                     </button>
-                    <img src="/vite.svg" alt="IceButcher" style={{ height: '90px', width: 'auto' }} />
+                    <img src="/vite.svg" alt="IceButcher" className="header-logo" />
                 </div>
                 <div className="header-right">
                     <button className="header-tour-btn" onClick={handleStartTour}>
                         <Eye size={16} />
                         <span>Quick Tour</span>
                     </button>
-                    <button className="wizard-open-btn" onClick={() => { setWizardOpen(true); setWizardStep(0); }}>
+                    <button className="wizard-open-btn" onClick={() => { setBuildMode(''); setWizardOpen(true); setWizardStep(0); }}>
                         <Layers size={18} />
                         <span>Build Sculpture</span>
                     </button>
@@ -759,7 +937,7 @@ const ChatInterface = () => {
 
                                 {/* Primary CTAs */}
                                 <div className="welcome-cta-row">
-                                    <button className="welcome-build-btn" onClick={() => { setWizardOpen(true); setWizardStep(0); }}>
+                                    <button className="welcome-build-btn" onClick={() => { setBuildMode(''); setWizardOpen(true); setWizardStep(0); }}>
                                         <div className="welcome-build-icon">
                                             <Layers size={24} />
                                         </div>
@@ -785,12 +963,15 @@ const ChatInterface = () => {
                                     <h3>70+ Templates</h3>
                                     <p>Luges, sculptures, bars, cubes & more</p>
                                 </div>
-                                <div className="welcome-feature-card">
-                                    <div className="welcome-feature-icon wf-gold">
-                                        <Wand2 size={20} />
+                                <div className="welcome-feature-card fav-card" onClick={() => setShowcaseOpen(true)}>
+                                    <div className="fav-card-pulse"></div>
+                                    <div className="fav-card-pulse fav-card-pulse-2"></div>
+                                    <div className="welcome-feature-icon wf-fav">
+                                        <Heart size={20} fill="#ff4b6e" color="#ff4b6e" />
                                     </div>
-                                    <h3>AI Rendering</h3>
-                                    <p>Photorealistic previews in seconds</p>
+                                    <h3>Favourites</h3>
+                                    <p>Our team's best picks</p>
+                                    <span className="fav-card-live-dot"></span>
                                 </div>
                                 <div className="welcome-feature-card">
                                     <div className="welcome-feature-icon wf-purple">
@@ -872,7 +1053,7 @@ const ChatInterface = () => {
                             )}
 
                             {msg.role !== 'user' && (
-                                <button className="generate-new-btn" onClick={() => { setWizardOpen(true); setWizardStep(0); }}>
+                                <button className="generate-new-btn" onClick={() => { setBuildMode(''); setWizardOpen(true); setWizardStep(0); }}>
                                     <RotateCcw size={16} /> Build New Sculpture
                                 </button>
                             )}
@@ -894,6 +1075,16 @@ const ChatInterface = () => {
                 )}
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* Favourites floating banner — visible when chat has messages */}
+            {messages.length > 0 && (
+                <div className="chat-fav-banner" onClick={() => setShowcaseOpen(true)}>
+                    <div className="chat-fav-banner-pulse"></div>
+                    <Heart size={16} fill="#ff4b6e" color="#ff4b6e" />
+                    <span className="chat-fav-banner-text">Explore Our Best Ice Sculptures</span>
+                    <ChevronRight size={14} className="chat-fav-banner-arrow" />
+                </div>
+            )}
 
             <div id="chat-input-container">
                 {isTemplateLoading && (
@@ -1002,14 +1193,14 @@ const ChatInterface = () => {
 
                         {/* Stepper graph */}
                         <div className="wizard-stepper">
-                            {STEPS.map((step, idx) => (
+                            {currentSteps.map((step, idx) => (
                                 <React.Fragment key={step.id}>
                                     {idx > 0 && (
                                         <div className={`step-connector ${idx <= wizardStep ? 'active' : ''}`} />
                                     )}
                                     <div
                                         className={`step-node ${wizardStep === idx ? 'current' : ''} ${idx < wizardStep ? 'completed' : ''}`}
-                                        onClick={() => setWizardStep(idx)}
+                                        onClick={() => { if (idx > 0 || buildMode) setWizardStep(idx); }}
                                         title={step.label}
                                     >
                                         {idx < wizardStep ? <Check size={14} /> : <span>{step.icon}</span>}
@@ -1018,7 +1209,7 @@ const ChatInterface = () => {
                             ))}
                         </div>
                         <div className="wizard-step-labels">
-                            {STEPS.map((step, idx) => (
+                            {currentSteps.map((step, idx) => (
                                 <span key={step.id} className={`step-label ${wizardStep === idx ? 'current' : ''}`}>
                                     {step.label}
                                 </span>
@@ -1027,15 +1218,185 @@ const ChatInterface = () => {
 
                         {/* Step title */}
                         <div className="wizard-header">
-                            <h2 className="wizard-title">{STEPS[wizardStep].label}</h2>
+                            <h2 className="wizard-title">{currentSteps[wizardStep]?.label || 'Build'}</h2>
                             <button className="wizard-reset" onClick={handlePanelReset}>Reset All</button>
                         </div>
 
                         {/* Body */}
                         <div className="wizard-body">
 
-                            {/* ---- STEP 0: SCULPTURE ---- */}
+                            {/* ---- STEP 0: MODE SELECTION (all modes) ---- */}
                             {wizardStep === 0 && (
+                                <div className="wizard-step-content">
+                                    <p className="wizard-hint">How would you like to create your ice sculpture?</p>
+                                    <div className="build-mode-grid">
+                                        <div
+                                            className={`build-mode-card ${buildMode === 'text-to-image' ? 'selected' : ''}`}
+                                            onClick={() => { setBuildMode('text-to-image'); setWizardStep(1); }}
+                                        >
+                                            <div className="build-mode-icon bm-text"><Type size={28} /></div>
+                                            <h3>Text to Image</h3>
+                                            <p>Describe your sculpture in words and let AI generate it</p>
+                                            <div className="build-mode-tags">
+                                                <span>Quick</span><span>Easy</span><span>Creative</span>
+                                            </div>
+                                        </div>
+                                        <div
+                                            className={`build-mode-card ${buildMode === 'image-to-image' ? 'selected' : ''}`}
+                                            onClick={() => { setBuildMode('image-to-image'); setWizardStep(1); }}
+                                        >
+                                            <div className="build-mode-icon bm-image"><ImagePlus size={28} /></div>
+                                            <h3>Image to Image</h3>
+                                            <p>Upload reference photos and transform them into ice sculptures</p>
+                                            <div className="build-mode-tags">
+                                                <span>Upload</span><span>Transform</span><span>Accurate</span>
+                                            </div>
+                                        </div>
+                                        <div
+                                            className={`build-mode-card ${buildMode === 'custom-build' ? 'selected' : ''}`}
+                                            onClick={() => { setBuildMode('custom-build'); setWizardStep(1); }}
+                                        >
+                                            <div className="build-mode-icon bm-custom"><Hammer size={28} /></div>
+                                            <h3>Custom Build</h3>
+                                            <p>Step-by-step wizard with 70+ templates, bases, toppers & more</p>
+                                            <div className="build-mode-tags">
+                                                <span>Templates</span><span>Detailed</span><span>Full Control</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ============ TEXT TO IMAGE STEPS ============ */}
+                            {buildMode === 'text-to-image' && wizardStep === 1 && (
+                                <div className="wizard-step-content">
+                                    <p className="wizard-hint">Describe the ice sculpture you want to create in detail.</p>
+                                    <textarea
+                                        className="rp-textarea rp-textarea-lg"
+                                        value={textPrompt}
+                                        onChange={(e) => setTextPrompt(e.target.value)}
+                                        placeholder="E.g. 'A 4-foot tall swan ice sculpture with spread wings on a rectangular base, with blue LED lighting, for a wedding reception...'"
+                                        rows={6}
+                                    />
+                                    <div className="text-prompt-tips">
+                                        <h4><Lightbulb size={14} /> Tips for better results:</h4>
+                                        <ul>
+                                            <li>Mention the sculpture type (luge, showpiece, bar, cube)</li>
+                                            <li>Describe size and proportions</li>
+                                            <li>Include details about base, lighting, or setting</li>
+                                            <li>Mention any text or logos you want embedded</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+                            {buildMode === 'text-to-image' && wizardStep === 2 && (
+                                <>
+                                    {renderDetailsStep()}
+                                </>
+                            )}
+                            {buildMode === 'text-to-image' && wizardStep === 3 && (
+                                <div className="wizard-step-content wizard-review">
+                                    <p className="wizard-hint">Review before generating.</p>
+                                    <div className="review-grid">
+                                        <div className="review-item">
+                                            <span className="review-label">Mode</span>
+                                            <span className="review-value">Text to Image</span>
+                                        </div>
+                                        <div className="review-item review-item-full">
+                                            <span className="review-label">Description</span>
+                                            <span className="review-value">{textPrompt || <em>No description</em>}</span>
+                                        </div>
+                                        <div className="review-item">
+                                            <span className="review-label">Aspect Ratio</span>
+                                            <span className="review-value">{aspectRatio}</span>
+                                        </div>
+                                        <div className="review-item">
+                                            <span className="review-label">Resolution</span>
+                                            <span className="review-value">{resolution}</span>
+                                        </div>
+                                        {panel.additionalPrompt && (
+                                            <div className="review-item review-item-full">
+                                                <span className="review-label">Additional Instructions</span>
+                                                <span className="review-value">{panel.additionalPrompt}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ============ IMAGE TO IMAGE STEPS ============ */}
+                            {buildMode === 'image-to-image' && wizardStep === 1 && (
+                                <div className="wizard-step-content">
+                                    <p className="wizard-hint">Upload up to 3 reference images to transform into ice sculptures.</p>
+                                    <div className="rp-upload-zone" onClick={() => imgToImgInputRef.current?.click()}>
+                                        <div className="rp-upload-placeholder">
+                                            <Upload size={18} />
+                                            <span>Click to upload reference images (up to 3)</span>
+                                        </div>
+                                    </div>
+                                    <input type="file" ref={imgToImgInputRef} accept="image/*" multiple onChange={handleImgToImgFileChange} style={{ display: 'none' }} />
+                                    {imgToImgFiles.length > 0 && (
+                                        <div className="img-to-img-previews">
+                                            {imgToImgFiles.map((file, i) => (
+                                                <div key={i} className="img-to-img-preview-card">
+                                                    <img src={URL.createObjectURL(file)} alt={`ref-${i}`} />
+                                                    <button className="rp-remove" onClick={() => removeImgToImgFile(i)}><X size={12} /></button>
+                                                    <span className="img-to-img-name">{file.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {buildMode === 'image-to-image' && wizardStep === 2 && (
+                                <div className="wizard-step-content">
+                                    <p className="wizard-hint">Describe how you want the images transformed into ice sculptures.</p>
+                                    <textarea
+                                        className="rp-textarea rp-textarea-lg"
+                                        value={imgToImgPrompt}
+                                        onChange={(e) => setImgToImgPrompt(e.target.value)}
+                                        placeholder="E.g. 'Transform this into a clear transparent ice sculpture, keep the exact same proportions and shape...'"
+                                        rows={5}
+                                    />
+                                </div>
+                            )}
+                            {buildMode === 'image-to-image' && wizardStep === 3 && (
+                                <>
+                                    {renderDetailsStep()}
+                                </>
+                            )}
+                            {buildMode === 'image-to-image' && wizardStep === 4 && (
+                                <div className="wizard-step-content wizard-review">
+                                    <p className="wizard-hint">Review before generating.</p>
+                                    <div className="review-grid">
+                                        <div className="review-item">
+                                            <span className="review-label">Mode</span>
+                                            <span className="review-value">Image to Image</span>
+                                        </div>
+                                        <div className="review-item">
+                                            <span className="review-label">Reference Images</span>
+                                            <span className="review-value">{imgToImgFiles.length} file(s)</span>
+                                        </div>
+                                        <div className="review-item review-item-full">
+                                            <span className="review-label">Description</span>
+                                            <span className="review-value">{imgToImgPrompt || <em>No description</em>}</span>
+                                        </div>
+                                        <div className="review-item">
+                                            <span className="review-label">Aspect Ratio</span>
+                                            <span className="review-value">{aspectRatio}</span>
+                                        </div>
+                                        <div className="review-item">
+                                            <span className="review-label">Resolution</span>
+                                            <span className="review-value">{resolution}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+
+                            {/* ============ CUSTOM BUILD STEPS ============ */}
+                            {/* ---- CUSTOM STEP 1: SCULPTURE ---- */}
+                            {buildMode === 'custom-build' && wizardStep === 1 && (
                                 <div className="wizard-step-content">
                                     <p className="wizard-hint">Choose a sculpture category, then pick a template or upload your own.</p>
                                     <div className="rp-category-chips">
@@ -1120,127 +1481,128 @@ const ChatInterface = () => {
                                 </div>
                             )}
 
-                            {/* ---- STEP 1: BASE ---- */}
-                            {wizardStep === 1 && (
-                                <div className="wizard-step-content">
-                                    <p className="wizard-hint">Would you like a base for your sculpture?</p>
-                                    <div className="rp-toggle-row">
-                                        <span>Add a base?</span>
-                                        <div className="rp-toggle-btns">
-                                            <button className={`rp-toggle-btn ${wantBase ? 'active' : ''}`} onClick={() => setWantBase(true)}>Yes</button>
-                                            <button className={`rp-toggle-btn ${!wantBase ? 'active' : ''}`} onClick={() => { setWantBase(false); updatePanel('selectedBase', null); updatePanel('customBaseFile', null); }}>No</button>
+                            {/* ---- CUSTOM STEP 2: EXTRAS (Base + Topper + Logo) ---- */}
+                            {buildMode === 'custom-build' && wizardStep === 2 && (
+                                <div className="wizard-step-content wizard-extras-combined">
+                                    <p className="wizard-hint">Customise your sculpture with a base, topper, and logo.</p>
+
+                                    {/* ── BASE SECTION ── */}
+                                    <div className="extras-section">
+                                        <h3 className="extras-section-title">Base</h3>
+                                        <div className="rp-toggle-row">
+                                            <span>Add a base?</span>
+                                            <div className="rp-toggle-btns">
+                                                <button className={`rp-toggle-btn ${wantBase ? 'active' : ''}`} onClick={() => setWantBase(true)}>Yes</button>
+                                                <button className={`rp-toggle-btn ${!wantBase ? 'active' : ''}`} onClick={() => { setWantBase(false); updatePanel('selectedBase', null); updatePanel('customBaseFile', null); }}>No</button>
+                                            </div>
                                         </div>
+                                        {wantBase && (
+                                            <>
+                                                <div className="rp-picker-grid">
+                                                    {categoryItems.bases.map((item, i) => (
+                                                        <div key={i} className={`rp-picker-item ${panel.selectedBase?.name === item.name ? 'selected' : ''}`} onClick={() => selectBase(item)}>
+                                                            <img src={item.image} alt={item.name} />
+                                                            <span className="rp-picker-label">{item.name}</span>
+                                                            {panel.selectedBase?.name === item.name && <div className="rp-picker-check"><Check size={14}/></div>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="rp-or-divider"><span>or</span></div>
+                                                <div className="rp-upload-zone" onClick={() => customBaseInputRef.current?.click()}>
+                                                    {panel.customBaseFile ? (
+                                                        <div className="rp-file-preview">
+                                                            <img src={URL.createObjectURL(panel.customBaseFile)} alt="custom" className="rp-thumb" />
+                                                            <span className="rp-file-name">{panel.customBaseFile.name}</span>
+                                                            <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('customBaseFile', null); }}><Trash2 size={14}/></button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="rp-upload-placeholder">
+                                                            <Upload size={18} />
+                                                            <span>Upload custom base image</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <input type="file" ref={customBaseInputRef} accept="image/*" onChange={handleCustomBase} style={{ display: 'none' }} />
+                                            </>
+                                        )}
                                     </div>
-                                    {wantBase && (
-                                        <>
-                                            <div className="rp-picker-grid">
-                                                {categoryItems.bases.map((item, i) => (
-                                                    <div key={i} className={`rp-picker-item ${panel.selectedBase?.name === item.name ? 'selected' : ''}`} onClick={() => selectBase(item)}>
-                                                        <img src={item.image} alt={item.name} />
-                                                        <span className="rp-picker-label">{item.name}</span>
-                                                        {panel.selectedBase?.name === item.name && <div className="rp-picker-check"><Check size={14}/></div>}
-                                                    </div>
-                                                ))}
+
+                                    {/* ── TOPPER SECTION ── */}
+                                    <div className="extras-section">
+                                        <h3 className="extras-section-title">Topper</h3>
+                                        <div className="rp-toggle-row">
+                                            <span>Add a topper?</span>
+                                            <div className="rp-toggle-btns">
+                                                <button className={`rp-toggle-btn ${wantTopper ? 'active' : ''}`} onClick={() => setWantTopper(true)}>Yes</button>
+                                                <button className={`rp-toggle-btn ${!wantTopper ? 'active' : ''}`} onClick={() => { setWantTopper(false); updatePanel('selectedTopper', null); updatePanel('customTopperFile', null); }}>No</button>
                                             </div>
-                                            <div className="rp-or-divider"><span>or</span></div>
-                                            <div className="rp-upload-zone" onClick={() => customBaseInputRef.current?.click()}>
-                                                {panel.customBaseFile ? (
-                                                    <div className="rp-file-preview">
-                                                        <img src={URL.createObjectURL(panel.customBaseFile)} alt="custom" className="rp-thumb" />
-                                                        <span className="rp-file-name">{panel.customBaseFile.name}</span>
-                                                        <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('customBaseFile', null); }}><Trash2 size={14}/></button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="rp-upload-placeholder">
-                                                        <Upload size={18} />
-                                                        <span>Upload custom base image</span>
-                                                    </div>
-                                                )}
+                                        </div>
+                                        {wantTopper && (
+                                            <>
+                                                <div className="rp-picker-grid">
+                                                    {categoryItems.toppers.map((item, i) => (
+                                                        <div key={i} className={`rp-picker-item ${panel.selectedTopper?.name === item.name ? 'selected' : ''}`} onClick={() => selectTopper(item)}>
+                                                            <img src={item.image} alt={item.name} />
+                                                            <span className="rp-picker-label">{item.name}</span>
+                                                            {panel.selectedTopper?.name === item.name && <div className="rp-picker-check"><Check size={14}/></div>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="rp-or-divider"><span>or</span></div>
+                                                <div className="rp-upload-zone" onClick={() => customTopperInputRef.current?.click()}>
+                                                    {panel.customTopperFile ? (
+                                                        <div className="rp-file-preview">
+                                                            <img src={URL.createObjectURL(panel.customTopperFile)} alt="custom" className="rp-thumb" />
+                                                            <span className="rp-file-name">{panel.customTopperFile.name}</span>
+                                                            <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('customTopperFile', null); }}><Trash2 size={14}/></button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="rp-upload-placeholder">
+                                                            <Upload size={18} />
+                                                            <span>Upload custom topper image</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <input type="file" ref={customTopperInputRef} accept="image/*" onChange={handleCustomTopper} style={{ display: 'none' }} />
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* ── LOGO SECTION ── */}
+                                    <div className="extras-section">
+                                        <h3 className="extras-section-title">Logo</h3>
+                                        <div className="rp-toggle-row">
+                                            <span>Add a logo?</span>
+                                            <div className="rp-toggle-btns">
+                                                <button className={`rp-toggle-btn ${wantLogo ? 'active' : ''}`} onClick={() => setWantLogo(true)}>Yes</button>
+                                                <button className={`rp-toggle-btn ${!wantLogo ? 'active' : ''}`} onClick={() => { setWantLogo(false); updatePanel('logoFile', null); }}>No</button>
                                             </div>
-                                            <input type="file" ref={customBaseInputRef} accept="image/*" onChange={handleCustomBase} style={{ display: 'none' }} />
-                                        </>
-                                    )}
+                                        </div>
+                                        {wantLogo && (
+                                            <>
+                                                <div className="rp-upload-zone" onClick={() => logoInputRef.current?.click()}>
+                                                    {panel.logoFile ? (
+                                                        <div className="rp-file-preview">
+                                                            <img src={URL.createObjectURL(panel.logoFile)} alt="logo" className="rp-thumb" />
+                                                            <span className="rp-file-name">{panel.logoFile.name}</span>
+                                                            <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('logoFile', null); }}><Trash2 size={14}/></button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="rp-upload-placeholder">
+                                                            <Upload size={18} />
+                                                            <span>Upload logo</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <input type="file" ref={logoInputRef} accept="image/*" onChange={handlePanelLogoChange} style={{ display: 'none' }} />
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
-                            {/* ---- STEP 2: TOPPER ---- */}
-                            {wizardStep === 2 && (
-                                <div className="wizard-step-content">
-                                    <p className="wizard-hint">Would you like a topper for your sculpture?</p>
-                                    <div className="rp-toggle-row">
-                                        <span>Add a topper?</span>
-                                        <div className="rp-toggle-btns">
-                                            <button className={`rp-toggle-btn ${wantTopper ? 'active' : ''}`} onClick={() => setWantTopper(true)}>Yes</button>
-                                            <button className={`rp-toggle-btn ${!wantTopper ? 'active' : ''}`} onClick={() => { setWantTopper(false); updatePanel('selectedTopper', null); updatePanel('customTopperFile', null); }}>No</button>
-                                        </div>
-                                    </div>
-                                    {wantTopper && (
-                                        <>
-                                            <div className="rp-picker-grid">
-                                                {categoryItems.toppers.map((item, i) => (
-                                                    <div key={i} className={`rp-picker-item ${panel.selectedTopper?.name === item.name ? 'selected' : ''}`} onClick={() => selectTopper(item)}>
-                                                        <img src={item.image} alt={item.name} />
-                                                        <span className="rp-picker-label">{item.name}</span>
-                                                        {panel.selectedTopper?.name === item.name && <div className="rp-picker-check"><Check size={14}/></div>}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <div className="rp-or-divider"><span>or</span></div>
-                                            <div className="rp-upload-zone" onClick={() => customTopperInputRef.current?.click()}>
-                                                {panel.customTopperFile ? (
-                                                    <div className="rp-file-preview">
-                                                        <img src={URL.createObjectURL(panel.customTopperFile)} alt="custom" className="rp-thumb" />
-                                                        <span className="rp-file-name">{panel.customTopperFile.name}</span>
-                                                        <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('customTopperFile', null); }}><Trash2 size={14}/></button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="rp-upload-placeholder">
-                                                        <Upload size={18} />
-                                                        <span>Upload custom topper image</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <input type="file" ref={customTopperInputRef} accept="image/*" onChange={handleCustomTopper} style={{ display: 'none' }} />
-                                        </>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* ---- STEP 3: LOGO ---- */}
-                            {wizardStep === 3 && (
-                                <div className="wizard-step-content">
-                                    <p className="wizard-hint">Would you like a logo embedded in the sculpture?</p>
-                                    <div className="rp-toggle-row">
-                                        <span>Add a logo?</span>
-                                        <div className="rp-toggle-btns">
-                                            <button className={`rp-toggle-btn ${wantLogo ? 'active' : ''}`} onClick={() => setWantLogo(true)}>Yes</button>
-                                            <button className={`rp-toggle-btn ${!wantLogo ? 'active' : ''}`} onClick={() => { setWantLogo(false); updatePanel('logoFile', null); }}>No</button>
-                                        </div>
-                                    </div>
-                                    {wantLogo && (
-                                        <>
-                                            <div className="rp-upload-zone" onClick={() => logoInputRef.current?.click()}>
-                                                {panel.logoFile ? (
-                                                    <div className="rp-file-preview">
-                                                        <img src={URL.createObjectURL(panel.logoFile)} alt="logo" className="rp-thumb" />
-                                                        <span className="rp-file-name">{panel.logoFile.name}</span>
-                                                        <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('logoFile', null); }}><Trash2 size={14}/></button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="rp-upload-placeholder">
-                                                        <Upload size={18} />
-                                                        <span>Upload logo</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <input type="file" ref={logoInputRef} accept="image/*" onChange={handlePanelLogoChange} style={{ display: 'none' }} />
-                                        </>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* ---- STEP 4: REFERENCES ---- */}
-                            {wizardStep === 4 && (
+                            {/* ---- CUSTOM STEP 3: REFERENCES ---- */}
+                            {buildMode === 'custom-build' && wizardStep === 3 && (
                                 <div className="wizard-step-content">
                                     <p className="wizard-hint">Add reference images and notes to guide the AI.</p>
                                     <div className="rp-upload-zone" onClick={() => referenceInputRef.current?.click()}>
@@ -1265,88 +1627,15 @@ const ChatInterface = () => {
                                 </div>
                             )}
 
-                            {/* ---- STEP 5: DETAILS ---- */}
-                            {wizardStep === 5 && (
-                                <div className="wizard-step-content">
-                                    <p className="wizard-hint">Configure output settings and add any additional instructions.</p>
-
-                                    {/* Aspect Ratio visual cards */}
-                                    <div className="wizard-setting-group">
-                                        <span className="wizard-setting-label">Frame Shape (Aspect Ratio)</span>
-                                        <p className="wizard-setting-desc">Choose how your image will be shaped</p>
-                                        <div className="wizard-ratio-grid">
-                                            {[
-                                                { label: '1:1', w: 1, h: 1, name: 'Square', desc: 'Social media posts' },
-                                                { label: '9:16', w: 9, h: 16, name: 'Portrait Tall', desc: 'Phone screens, stories' },
-                                                { label: '16:9', w: 16, h: 9, name: 'Landscape Wide', desc: 'Presentations, desktop' },
-                                                { label: '4:3', w: 4, h: 3, name: 'Classic', desc: 'Standard photos' },
-                                                { label: '3:4', w: 3, h: 4, name: 'Portrait', desc: 'Vertical photos' },
-                                                { label: '2:3', w: 2, h: 3, name: 'Tall Portrait', desc: 'Posters, prints' },
-                                                { label: '3:2', w: 3, h: 2, name: 'Wide Photo', desc: 'DSLR standard' },
-                                                { label: '4:5', w: 4, h: 5, name: 'Instagram', desc: 'Instagram portrait' },
-                                                { label: '5:4', w: 5, h: 4, name: 'Landscape', desc: 'Landscape photos' },
-                                                { label: '21:9', w: 21, h: 9, name: 'Ultra Wide', desc: 'Cinematic, banners' },
-                                            ].map((r) => (
-                                                <div
-                                                    key={r.label}
-                                                    className={`wizard-ratio-card ${aspectRatio === r.label ? 'selected' : ''}`}
-                                                    onClick={() => setAspectRatio(r.label)}
-                                                >
-                                                    <div className="wizard-ratio-preview" style={{
-                                                        aspectRatio: `${r.w} / ${r.h}`,
-                                                        width: r.w >= r.h ? '100%' : 'auto',
-                                                        height: r.h > r.w ? '100%' : 'auto',
-                                                        maxWidth: '100%',
-                                                        maxHeight: '100%',
-                                                    }}>
-                                                        <span className="wizard-ratio-value">{r.label}</span>
-                                                    </div>
-                                                    <span className="wizard-ratio-name">{r.name}</span>
-                                                    <span className="wizard-ratio-desc">{r.desc}</span>
-                                                    {aspectRatio === r.label && <div className="wizard-ratio-check"><Check size={12} /></div>}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Resolution visual cards */}
-                                    <div className="wizard-setting-group">
-                                        <span className="wizard-setting-label">Image Quality (Resolution)</span>
-                                        <p className="wizard-setting-desc">Higher resolution = more detail but slower generation</p>
-                                        <div className="wizard-res-grid">
-                                            {[
-                                                { label: '1K', name: 'Standard', desc: 'Fast generation, good for previews', pixels: '1024px', icon: '🔵' },
-                                                { label: '2K', name: 'High Definition', desc: 'Recommended — great balance of quality & speed', pixels: '2048px', icon: '🟢', recommended: true },
-                                                { label: '4K', name: 'Ultra HD', desc: 'Maximum detail, best for final renders', pixels: '4096px', icon: '🟡' },
-                                            ].map((r) => (
-                                                <div
-                                                    key={r.label}
-                                                    className={`wizard-res-card ${resolution === r.label ? 'selected' : ''}`}
-                                                    onClick={() => setResolution(r.label)}
-                                                >
-                                                    {r.recommended && <span className="wizard-res-badge">Recommended</span>}
-                                                    <div className="wizard-res-icon">{r.icon}</div>
-                                                    <span className="wizard-res-label">{r.label}</span>
-                                                    <span className="wizard-res-name">{r.name}</span>
-                                                    <span className="wizard-res-desc">{r.desc}</span>
-                                                    <span className="wizard-res-pixels">{r.pixels}</span>
-                                                    {resolution === r.label && <div className="wizard-ratio-check"><Check size={12} /></div>}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Additional prompt */}
-                                    <div className="wizard-setting-group">
-                                        <span className="wizard-setting-label">Additional Instructions</span>
-                                        <p className="wizard-setting-desc">Any special requests for the AI? (Optional)</p>
-                                        <textarea className="rp-textarea" value={panel.additionalPrompt} onChange={(e) => updatePanel('additionalPrompt', e.target.value)} placeholder="E.g. 'Make it 3 feet tall with blue lighting'" rows={4} />
-                                    </div>
-                                </div>
+                            {/* ---- CUSTOM STEP 4: DETAILS ---- */}
+                            {buildMode === 'custom-build' && wizardStep === 4 && (
+                                <>
+                                    {renderDetailsStep()}
+                                </>
                             )}
 
-                            {/* ---- STEP 6: REVIEW ---- */}
-                            {wizardStep === 6 && (
+                            {/* ---- CUSTOM STEP 5: REVIEW ---- */}
+                            {buildMode === 'custom-build' && wizardStep === 5 && (
                                 <div className="wizard-step-content wizard-review">
                                     <p className="wizard-hint">Review your selections before generating.</p>
                                     <div className="review-grid">
@@ -1397,17 +1686,26 @@ const ChatInterface = () => {
                         {/* Footer */}
                         <div className="wizard-footer">
                             {wizardStep > 0 && (
-                                <button className="wizard-btn wizard-btn-back" onClick={() => setWizardStep(s => s - 1)}>
+                                <button className="wizard-btn wizard-btn-back" onClick={() => {
+                                    if (wizardStep === 1) { setBuildMode(''); }
+                                    setWizardStep(s => s - 1);
+                                }}>
                                     <ArrowLeft size={16} /> Back
                                 </button>
                             )}
                             <div className="wizard-footer-spacer" />
-                            {wizardStep < STEPS.length - 1 ? (
+                            {wizardStep === 0 ? null : wizardStep < currentSteps.length - 1 ? (
                                 <button className="wizard-btn wizard-btn-next" onClick={() => setWizardStep(s => s + 1)}>
                                     Next <ArrowRight size={16} />
                                 </button>
                             ) : (
-                                <button className="wizard-btn wizard-btn-generate" onClick={handlePanelGenerate} disabled={isLoading}>
+                                <button className="wizard-btn wizard-btn-generate" onClick={() => {
+                                    if (buildMode === 'text-to-image') handleTextToImageGenerate();
+                                    else if (buildMode === 'image-to-image') handleImageToImageGenerate();
+                                    else if (buildMode === 'video') handleVideoGenerate();
+                                    else if (buildMode === 'edit') handleEditGenerate();
+                                    else handlePanelGenerate();
+                                }} disabled={isLoading}>
                                     <Sparkles size={16} /> Generate Preview
                                 </button>
                             )}
@@ -1434,9 +1732,14 @@ const ChatInterface = () => {
                     onComplete={() => setShowTour(false)}
                     setWizardOpen={setWizardOpen}
                     setWizardStep={setWizardStep}
+                    setBuildMode={setBuildMode}
                     setSculptureCategory={setSculptureCategory}
                 />
             )}
+
+            <IceChatWidget />
+
+            <ShowcaseGallery isOpen={showcaseOpen} onClose={() => setShowcaseOpen(false)} />
 
         </div >
     );
