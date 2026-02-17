@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import api from '../api';
-import { Send, Mic, Image as ImageIcon, X, ThumbsUp, ThumbsDown, Lightbulb, Wand2, Sun, Menu, Settings, ChevronDown, ChevronRight, Check, Sparkles, Video, Edit2, Upload, Trash2, ArrowRight, ArrowLeft, Layers, Paintbrush, RotateCcw, Gem, Zap, Eye, Clock, PanelLeftOpen, PanelLeftClose, Download, Maximize2, Type, ImagePlus, Hammer, Heart } from 'lucide-react';
+import { Send, Mic, Image as ImageIcon, X, ThumbsUp, ThumbsDown, Lightbulb, Wand2, Sun, Moon, Menu, Settings, ChevronDown, ChevronRight, ChevronLeft, Check, Sparkles, Video, Edit2, Upload, Trash2, ArrowRight, ArrowLeft, Layers, Paintbrush, RotateCcw, Gem, Zap, Eye, Clock, Download, Maximize2, Type, ImagePlus, Hammer, Heart } from 'lucide-react';
 import FeedbackModal from './FeedbackModal';
 import ImagePreviewModal from './ImagePreviewModal';
 import GuidedTour from './GuidedTour';
@@ -84,6 +84,13 @@ const ChatInterface = () => {
     const [wantBase, setWantBase] = useState(false);
     const [wantTopper, setWantTopper] = useState(false);
     const [wantLogo, setWantLogo] = useState(false);
+    const [lugeLogoOption, setLugeLogoOption] = useState(null); // 'top' | 'addon' | 'both'
+    const [tubeLugeOption, setTubeLugeOption] = useState(null); // 'inclusion' | 'etched' | 'paper' | 'shape'
+    const [threeDLogoStyle, setThreeDLogoStyle] = useState(null); // 'paper' | 'snowfilled'
+    const [standardLogoShape, setStandardLogoShape] = useState(null); // 'round' | 'square' | 'shape' | 'none'
+    const [standardTextOption, setStandardTextOption] = useState(null); // 'names' | 'images' | 'both' | 'none'
+    const [standardText, setStandardText] = useState('');
+    const [theme, setTheme] = useState(() => localStorage.getItem('cynx_theme') || 'light');
 
     const [buildMode, setBuildMode] = useState(''); // 'text-to-image', 'image-to-image', 'custom-build'
     const [textPrompt, setTextPrompt] = useState('');
@@ -100,7 +107,8 @@ const ChatInterface = () => {
     const [imagePrompts, setImagePrompts] = useState({});
     const [activeTaskIds, setActiveTaskIds] = useState([]);
     const [showTour, setShowTour] = useState(false);
-    const [historyOpen, setHistoryOpen] = useState(false);
+
+    const [historyOpen, setHistoryOpen] = useState(true);
     const [showcaseOpen, setShowcaseOpen] = useState(false);
     const [generatedHistory, setGeneratedHistory] = useState(() => {
         try {
@@ -126,6 +134,14 @@ const ChatInterface = () => {
         }
     }, []);
 
+    // Apply theme to <html> and persist preference
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('cynx_theme', theme);
+    }, [theme]);
+
+    const toggleTheme = () => setTheme(t => t === 'light' ? 'dark' : 'light');
+
     const handleStartTour = () => {
         setShowTour(true);
     };
@@ -138,24 +154,35 @@ const ChatInterface = () => {
     const filesRef = useRef([]);
 
     // Build category item lists from sidebarImages JSON
-    // Map: display label → JSON category name
     const sculptureCategoryMap = [
-        { label: 'Luges', key: 'Ludges' },
-        { label: 'Ice Bars', key: 'Ice Bars' },
-        { label: 'Ice Cubes', key: 'Ice Cubes' },
-        { label: 'Showpieces', key: 'Sculptures' },
-        { label: 'Wedding', key: 'Wedding Showpieces' },
+        { label: 'Luge',               key: 'Ludges' },
+        { label: '3D Showpiece',        key: '3D Showpiece' },
+        { label: 'Standard Showpiece',  key: 'Standard Showpiece' },
+        { label: 'Seafood Display',     key: 'Seafood Display' },
+        { label: 'Ice Bar',             key: 'Ice Bars' },
+        { label: 'Ice Cube',            key: 'Ice Cubes' },
     ];
-    const sculptureCategoryKeys = sculptureCategoryMap.map(c => c.key);
+    const SEAFOOD_KEYWORDS = ['crab', 'lobster', 'shrimp', 'mahi', 'dolphin', 'whale', 'shark', 'penguin', 'fish', 'octopus', 'clam', 'oyster', 'seafood', 'salmon'];
     const categoryItems = useMemo(() => {
-        const sculpturesByCategory = {};
+        const sculpturesByCategory = {
+            'Ludges': [], '3D Showpiece': [], 'Standard Showpiece': [],
+            'Seafood Display': [], 'Ice Bars': [], 'Ice Cubes': [],
+        };
         const bases = [];
         const toppers = [];
         sidebarImages.forEach(item => {
             const entry = { type: item.label, name: item.label, image: item.url, category: item.category };
-            if (sculptureCategoryKeys.includes(item.category)) {
-                if (!sculpturesByCategory[item.category]) sculpturesByCategory[item.category] = [];
-                sculpturesByCategory[item.category].push(entry);
+            if (item.category === 'Ludges') {
+                sculpturesByCategory['Ludges'].push(entry);
+            } else if (item.category === 'Ice Bars') {
+                sculpturesByCategory['Ice Bars'].push(entry);
+            } else if (item.category === 'Ice Cubes') {
+                sculpturesByCategory['Ice Cubes'].push(entry);
+            } else if (item.category === 'Sculptures' || item.category === 'Wedding Showpieces') {
+                sculpturesByCategory['3D Showpiece'].push(entry);
+                if (SEAFOOD_KEYWORDS.some(k => item.label.toLowerCase().includes(k))) {
+                    sculpturesByCategory['Seafood Display'].push(entry);
+                }
             } else if (item.category === 'Bases') {
                 bases.push(entry);
             } else if (item.category === 'Toppers') {
@@ -543,6 +570,15 @@ const ChatInterface = () => {
         updatePanel('customTopperFile', null);
     };
 
+    // Detect which luge sub-type is selected (if any)
+    const selectedLugeType = useMemo(() => {
+        if (sculptureCategory !== 'Ludges') return null;
+        const name = (panel.selectedSculpture?.name || '').toLowerCase();
+        if (name.includes('double') || name.includes('martini')) return 'double-martini';
+        if (name.includes('tube')) return 'tube';
+        return null;
+    }, [sculptureCategory, panel.selectedSculpture]);
+
     const buildPanelPrompt = () => {
         const parts = [];
         if (sculptureCategory) {
@@ -552,19 +588,60 @@ const ChatInterface = () => {
         if (panel.selectedSculpture) parts.push(`Sculpture design: ${panel.selectedSculpture.name}`);
         if (panel.customSculptureFile) parts.push(`Sculpture: custom upload (${panel.customSculptureFile.name})`);
 
-        // For Ice Cubes: describe the logo embedding
+        // Standard Showpiece: base is the primary selection
+        if (sculptureCategory === 'Standard Showpiece') {
+            if (panel.selectedBase) parts.push(`Base: ${panel.selectedBase.name}`);
+            if (standardLogoShape && standardLogoShape !== 'none') {
+                const shapeLabel = { round: 'round/circular', square: 'square/rectangular', shape: 'custom shape (matches uploaded item)' }[standardLogoShape];
+                parts.push(`Add-on logo shape: ${shapeLabel}`);
+                if (panel.logoFile) parts.push(`Logo file: ${panel.logoFile.name}`);
+            }
+            if (standardTextOption && standardTextOption !== 'none') {
+                const textLabel = { names: 'engrave names / words', images: 'add image element', both: 'engrave names/words AND add image element' }[standardTextOption];
+                parts.push(`Text / content: ${textLabel}`);
+                if (standardText) parts.push(`Text to engrave: "${standardText}"`);
+            }
+        }
+
+        // 3D Showpiece / Seafood Display: optional logo with style
+        if ((sculptureCategory === '3D Showpiece' || sculptureCategory === 'Seafood Display') && wantLogo && threeDLogoStyle) {
+            parts.push(`Logo style: ${threeDLogoStyle} effect`);
+            if (panel.logoFile) parts.push(`Logo file: ${panel.logoFile.name}`);
+        }
+
+        // Ice Cubes: logo embedding
         if (sculptureCategory === 'Ice Cubes' && panel.logoFile) {
             const effectType = panel.selectedSculpture?.name || 'Paper';
             parts.push(`Logo: uploaded file (${panel.logoFile.name}) — embed this EXACT logo into the ice cube using "${effectType}" effect`);
         }
 
-        if (wantBase && panel.selectedBase) parts.push(`Base: ${panel.selectedBase.name}`);
-        if (wantBase && panel.customBaseFile) parts.push(`Base: custom upload (${panel.customBaseFile.name})`);
-        if (wantTopper && panel.selectedTopper) parts.push(`Topper: ${panel.selectedTopper.name}`);
-        if (wantTopper && panel.customTopperFile) parts.push(`Topper: custom upload (${panel.customTopperFile.name})`);
-        // For non-ice-cube logo
-        if (sculptureCategory !== 'Ice Cubes' && wantLogo && panel.logoFile) {
-            parts.push(`Logo: uploaded file (${panel.logoFile.name})`);
+        // Double / Martini luge: logo placement
+        if (selectedLugeType === 'double-martini' && lugeLogoOption) {
+            const posLabel = { top: 'top surface only', addon: 'side/front (add-on) only', both: 'top surface AND side/front (add-on)' }[lugeLogoOption];
+            parts.push(`Logo placement: ${posLabel}`);
+            if (panel.logoFile) parts.push(`Logo file: ${panel.logoFile.name}`);
+        }
+
+        // Tube luge: style option
+        if (selectedLugeType === 'tube' && tubeLugeOption) {
+            const tubeLabel = {
+                inclusion: 'inclusion — freeze the uploaded item inside the ice',
+                etched:    'etched / carved logo inside the ice (snofilled effect)',
+                paper:     'paper logo frozen inside the ice',
+                shape:     'AI shape — recreate the tube luge in the shape of the uploaded reference image',
+            }[tubeLugeOption];
+            parts.push(`Tube luge style: ${tubeLabel}`);
+            if (panel.logoFile) parts.push(`Reference file: ${panel.logoFile.name}`);
+        }
+
+        // Standard base/topper/logo (non-special categories)
+        const isSpecialCategory = ['Ice Cubes', '3D Showpiece', 'Seafood Display', 'Standard Showpiece'].includes(sculptureCategory) || selectedLugeType;
+        if (!isSpecialCategory) {
+            if (wantBase && panel.selectedBase) parts.push(`Base: ${panel.selectedBase.name}`);
+            if (wantBase && panel.customBaseFile) parts.push(`Base: custom upload (${panel.customBaseFile.name})`);
+            if (wantTopper && panel.selectedTopper) parts.push(`Topper: ${panel.selectedTopper.name}`);
+            if (wantTopper && panel.customTopperFile) parts.push(`Topper: custom upload (${panel.customTopperFile.name})`);
+            if (wantLogo && panel.logoFile) parts.push(`Logo: uploaded file (${panel.logoFile.name})`);
         }
         if (panel.referenceNotes) parts.push(`Reference notes: ${panel.referenceNotes}`);
         if (panel.additionalPrompt) parts.push(panel.additionalPrompt);
@@ -592,18 +669,32 @@ const ChatInterface = () => {
             }
         };
 
-        // Sculpture image (custom upload OR template from gallery)
-        if (panel.customSculptureFile) {
-            filesToSend.push(panel.customSculptureFile);
-            prompts[idx] = 'MAIN SCULPTURE REFERENCE — replicate this EXACT shape, proportions, and silhouette as a clear transparent ice sculpture';
-            idx++;
-        } else if (panel.selectedSculpture?.image) {
-            const file = await fetchImageAsFile(panel.selectedSculpture.image, 'sculpture_template.jpg');
-            if (file) { filesToSend.push(file); prompts[idx] = 'MAIN SCULPTURE REFERENCE — replicate this EXACT shape, proportions, and silhouette as a clear transparent ice sculpture'; idx++; }
+        // Standard Showpiece: base is primary; no sculpture template
+        if (sculptureCategory === 'Standard Showpiece') {
+            if (panel.selectedBase?.image) {
+                const file = await fetchImageAsFile(panel.selectedBase.image, 'base_template.jpg');
+                if (file) { filesToSend.push(file); prompts[idx] = 'BASE — this is the chosen base style. Build the showpiece on top of this base.'; idx++; }
+            }
+        } else {
+            // All other categories: sculpture template first
+            // For luge categories, tell Gemini to copy SHAPE only, not any branding from the reference
+            const hasLogo = !!(panel.logoFile && selectedLugeType);
+            const sculptureRefPrompt = hasLogo
+                ? 'MAIN SCULPTURE REFERENCE — replicate ONLY the physical SHAPE, proportions, and channel structure of this luge as a clear photorealistic ice sculpture. COMPLETELY IGNORE and DO NOT copy any text, logos, or branding visible in this reference image. The sculpture must be plain transparent ice — the client logo will be added separately via a dedicated logo image.'
+                : 'MAIN SCULPTURE REFERENCE — replicate this EXACT shape, proportions, and silhouette as a clear transparent ice sculpture';
+
+            if (panel.customSculptureFile) {
+                filesToSend.push(panel.customSculptureFile);
+                prompts[idx] = sculptureRefPrompt;
+                idx++;
+            } else if (panel.selectedSculpture?.image) {
+                const file = await fetchImageAsFile(panel.selectedSculpture.image, 'sculpture_template.jpg');
+                if (file) { filesToSend.push(file); prompts[idx] = sculptureRefPrompt; idx++; }
+            }
         }
 
-        // Base image
-        if (wantBase) {
+        // Base image (standard extras, non-Standard-Showpiece)
+        if (wantBase && sculptureCategory !== 'Standard Showpiece') {
             if (panel.customBaseFile) {
                 filesToSend.push(panel.customBaseFile);
                 prompts[idx] = 'BASE — place this base design at the bottom of the sculpture';
@@ -626,12 +717,48 @@ const ChatInterface = () => {
             }
         }
 
-        // Logo — always send for Ice Cubes (uploaded on step 1), or when wantLogo is toggled on for other categories
-        if (panel.logoFile && (wantLogo || sculptureCategory === 'Ice Cubes')) {
+        // Logo — Ice Cubes
+        if (panel.logoFile && sculptureCategory === 'Ice Cubes') {
             filesToSend.push(panel.logoFile);
-            prompts[idx] = sculptureCategory === 'Ice Cubes'
-                ? 'LOGO — this is the exact logo to embed inside the ice cube. Use THIS logo exactly as-is, do NOT create or invent a different logo'
-                : 'LOGO — engrave or embed this logo into the ice sculpture';
+            prompts[idx] = 'LOGO — this is the exact logo to embed inside the ice cube. Use THIS logo exactly as-is, do NOT create or invent a different logo';
+            idx++;
+        }
+        // Logo — 3D Showpiece / Seafood Display
+        if (panel.logoFile && (sculptureCategory === '3D Showpiece' || sculptureCategory === 'Seafood Display') && wantLogo && threeDLogoStyle) {
+            filesToSend.push(panel.logoFile);
+            prompts[idx] = threeDLogoStyle === 'paper'
+                ? 'LOGO — apply this logo as a coloured printed paper effect placed on the sculpture at the position described in the brief'
+                : 'LOGO — engrave/etch this logo into the sculpture ice using a snowfilled/frosted carved effect at the position described in the brief';
+            idx++;
+        }
+        // Logo — Standard Showpiece
+        if (panel.logoFile && sculptureCategory === 'Standard Showpiece' && standardLogoShape && standardLogoShape !== 'none') {
+            filesToSend.push(panel.logoFile);
+            const shapePrompt = { round: 'round circular', square: 'square/rectangular', shape: 'custom shape matching this uploaded item silhouette' }[standardLogoShape];
+            prompts[idx] = `ADD-ON LOGO — apply this logo as a ${shapePrompt} add-on element on the showpiece.`;
+            idx++;
+        }
+        // Logo — Double / Martini luge
+        if (panel.logoFile && selectedLugeType === 'double-martini' && lugeLogoOption) {
+            filesToSend.push(panel.logoFile);
+            const pos = { top: 'the top surface', addon: 'the side/front (add-on position)', both: 'BOTH the top surface AND the side/front (add-on position)' }[lugeLogoOption];
+            prompts[idx] = `CLIENT LOGO — This is the ONLY logo to use. Apply it clearly and accurately on ${pos} of the ice luge. Engrave or etch it directly into the ice surface so it reads as a carved/snofilled effect. Preserve the exact font, layout, and all graphic elements from this uploaded logo. Do NOT invent or use any other logo, text, or branding.`;
+            idx++;
+        }
+        // Tube luge file (logo / inclusion item / shape reference)
+        if (panel.logoFile && selectedLugeType === 'tube' && tubeLugeOption) {
+            filesToSend.push(panel.logoFile);
+            if (tubeLugeOption === 'etched')    prompts[idx] = 'CLIENT LOGO — This is the ONLY logo/branding to use. Etch and carve this exact logo into the tube luge ice surface with a snofilled/frosted carved effect. Reproduce all fonts, graphics, and layout precisely. Do NOT invent or add any other text or logos.';
+            if (tubeLugeOption === 'paper')     prompts[idx] = 'CLIENT LOGO — This is the ONLY logo/branding to use. Embed this exact logo as a printed paper frozen inside the tube luge ice. Keep all elements together on one solid white rectangular paper background. Do NOT invent or use any other text or logos.';
+            if (tubeLugeOption === 'inclusion') prompts[idx] = 'INCLUSION ITEM — freeze this exact item inside the tube luge ice as a realistic ice inclusion. It should be clearly visible through the clear transparent ice, perfectly preserved in its original form.';
+            if (tubeLugeOption === 'shape')     prompts[idx] = 'SHAPE REFERENCE — redesign the tube luge so its overall external shape and silhouette closely matches this reference object. The result must still be rendered as a clear photorealistic ice tube luge.';
+            idx++;
+        }
+        // Logo — standard Ice Bar / Luge (no special sub-type) fallback
+        const isSpecialLogoCategory = ['Ice Cubes', '3D Showpiece', 'Seafood Display', 'Standard Showpiece'].includes(sculptureCategory) || selectedLugeType;
+        if (panel.logoFile && !isSpecialLogoCategory && wantLogo) {
+            filesToSend.push(panel.logoFile);
+            prompts[idx] = 'LOGO — engrave or embed this logo into the ice sculpture';
             idx++;
         }
 
@@ -664,6 +791,12 @@ const ChatInterface = () => {
         setWantBase(false);
         setWantTopper(false);
         setWantLogo(false);
+        setLugeLogoOption(null);
+        setTubeLugeOption(null);
+        setThreeDLogoStyle(null);
+        setStandardLogoShape(null);
+        setStandardTextOption(null);
+        setStandardText('');
         setTextPrompt('');
         setImgToImgFiles([]);
         setImgToImgPrompt('');
@@ -843,12 +976,22 @@ const ChatInterface = () => {
         <div id="chatbot-container">
             <div id="chat-header">
                 <div className="header-left">
-                    <button className="history-toggle-btn" onClick={() => setHistoryOpen(prev => !prev)} title="Image History">
-                        {historyOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
-                    </button>
-                    <img src="/vite.svg" alt="IceButcher" className="header-logo" />
+                    <a href="/">
+                        <img src="/vite.svg" alt="IceButcher" className="header-logo" />
+                    </a>
                 </div>
                 <div className="header-right">
+                    <button
+                        className={`header-history-toggle ${historyOpen ? 'active' : ''}`}
+                        onClick={() => setHistoryOpen(p => !p)}
+                        title={historyOpen ? 'Hide Generated Images' : 'Show Generated Images'}
+                    >
+                        <ImageIcon size={16} />
+                        <span>My Images</span>
+                    </button>
+                    <button className="theme-toggle-btn" onClick={toggleTheme} title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'} aria-label="Toggle theme">
+                        {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
+                    </button>
                     <button className="header-tour-btn" onClick={handleStartTour}>
                         <Eye size={16} />
                         <span>Quick Tour</span>
@@ -869,11 +1012,16 @@ const ChatInterface = () => {
                         <Clock size={16} />
                         <span>Generated Images</span>
                     </div>
-                    {generatedHistory.length > 0 && (
-                        <button className="history-clear-btn" onClick={handleClearHistory} title="Clear All">
-                            <Trash2 size={14} />
+                    <div className="history-header-actions">
+                        {generatedHistory.length > 0 && (
+                            <button className="history-clear-btn" onClick={handleClearHistory} title="Clear All">
+                                <Trash2 size={14} />
+                            </button>
+                        )}
+                        <button className="history-collapse-btn" onClick={() => setHistoryOpen(false)} title="Hide panel">
+                            <ChevronLeft size={15} />
                         </button>
-                    )}
+                    </div>
                 </div>
                 <div className="history-sidebar-content">
                     {generatedHistory.length === 0 ? (
@@ -1395,10 +1543,14 @@ const ChatInterface = () => {
 
 
                             {/* ============ CUSTOM BUILD STEPS ============ */}
-                            {/* ---- CUSTOM STEP 1: SCULPTURE ---- */}
+                            {/* ---- CUSTOM STEP 1: SCULPTURE / BASE ---- */}
                             {buildMode === 'custom-build' && wizardStep === 1 && (
                                 <div className="wizard-step-content">
-                                    <p className="wizard-hint">Choose a sculpture category, then pick a template or upload your own.</p>
+                                    <p className="wizard-hint">
+                                        {sculptureCategory === 'Standard Showpiece'
+                                            ? 'Choose the base for your showpiece.'
+                                            : 'Choose a category, then pick a template or upload your own.'}
+                                    </p>
                                     <div className="rp-category-chips">
                                         {sculptureCategoryMap.map(({ label, key }) => (
                                             <button
@@ -1411,6 +1563,7 @@ const ChatInterface = () => {
                                                         setSculptureCategory(key);
                                                         updatePanel('selectedSculpture', null);
                                                         updatePanel('customSculptureFile', null);
+                                                        updatePanel('selectedBase', null);
                                                     }
                                                 }}
                                             >
@@ -1419,7 +1572,25 @@ const ChatInterface = () => {
                                         ))}
                                     </div>
 
-                                    {sculptureCategory && categoryItems.sculpturesByCategory[sculptureCategory] && (
+                                    {/* Standard Showpiece: show BASES first */}
+                                    {sculptureCategory === 'Standard Showpiece' && (
+                                        <div className="rp-picker-grid">
+                                            {categoryItems.bases.map((item, i) => (
+                                                <div
+                                                    key={i}
+                                                    className={`rp-picker-item ${panel.selectedBase?.name === item.name ? 'selected' : ''}`}
+                                                    onClick={() => selectBase(item)}
+                                                >
+                                                    <img src={item.image} alt={item.name} />
+                                                    <span className="rp-picker-label">{item.name}</span>
+                                                    {panel.selectedBase?.name === item.name && <div className="rp-picker-check"><Check size={14}/></div>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* All other categories: show sculpture gallery */}
+                                    {sculptureCategory && sculptureCategory !== 'Standard Showpiece' && categoryItems.sculpturesByCategory[sculptureCategory] && (
                                         <>
                                             <div className="rp-picker-grid">
                                                 {categoryItems.sculpturesByCategory[sculptureCategory].map((item, i) => (
@@ -1481,13 +1652,243 @@ const ChatInterface = () => {
                                 </div>
                             )}
 
-                            {/* ---- CUSTOM STEP 2: EXTRAS (Base + Topper + Logo) ---- */}
+                            {/* ---- CUSTOM STEP 2: EXTRAS ---- */}
                             {buildMode === 'custom-build' && wizardStep === 2 && (
-                                <div className="wizard-step-content wizard-extras-combined">
-                                    <p className="wizard-hint">Customise your sculpture with a base, topper, and logo.</p>
+                                <>
+                                {/* ══ 3D SHOWPIECE / SEAFOOD DISPLAY — logo style ══ */}
+                                {(sculptureCategory === '3D Showpiece' || sculptureCategory === 'Seafood Display') ? (
+                                    <div className="wizard-step-content">
+                                        <p className="wizard-hint">Would you like to add a logo to your sculpture?</p>
+                                        <div className="rp-toggle-row">
+                                            <span>Add a logo?</span>
+                                            <div className="rp-toggle-btns">
+                                                <button className={`rp-toggle-btn ${wantLogo ? 'active' : ''}`} onClick={() => setWantLogo(true)}>Yes</button>
+                                                <button className={`rp-toggle-btn ${!wantLogo ? 'active' : ''}`} onClick={() => { setWantLogo(false); setThreeDLogoStyle(null); updatePanel('logoFile', null); }}>No</button>
+                                            </div>
+                                        </div>
+                                        {wantLogo && (
+                                            <>
+                                                <div className="extras-section" style={{ marginTop: '1rem' }}>
+                                                    <h3 className="extras-section-title">Logo style</h3>
+                                                    <div className="luge-option-cards">
+                                                        {[
+                                                            { key: 'paper',      label: 'Paper',      desc: 'Coloured printed paper effect placed on the sculpture' },
+                                                            { key: 'snowfilled', label: 'Snowfilled',  desc: 'Logo carved / etched into the ice with a frosted appearance' },
+                                                        ].map(({ key, label, desc }) => (
+                                                            <button
+                                                                key={key}
+                                                                className={`luge-option-card ${threeDLogoStyle === key ? 'active' : ''}`}
+                                                                onClick={() => { setThreeDLogoStyle(key); updatePanel('logoFile', null); }}
+                                                            >
+                                                                <span className="luge-option-label">{label}</span>
+                                                                <span className="luge-option-desc">{desc}</span>
+                                                                {threeDLogoStyle === key && <div className="rp-picker-check" style={{position:'absolute',top:'0.5rem',right:'0.5rem'}}><Check size={14}/></div>}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                {threeDLogoStyle && (
+                                                    <div className="extras-section" style={{ marginTop: '1rem' }}>
+                                                        <h3 className="extras-section-title">Upload your logo</h3>
+                                                        <div className="rp-upload-zone" onClick={() => logoInputRef.current?.click()}>
+                                                            {panel.logoFile ? (
+                                                                <div className="rp-file-preview">
+                                                                    <img src={URL.createObjectURL(panel.logoFile)} alt="logo" className="rp-thumb" />
+                                                                    <span className="rp-file-name">{panel.logoFile.name}</span>
+                                                                    <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('logoFile', null); }}><Trash2 size={14}/></button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="rp-upload-placeholder"><Upload size={18} /><span>Upload logo</span></div>
+                                                            )}
+                                                        </div>
+                                                        <input type="file" ref={logoInputRef} accept="image/*" onChange={handlePanelLogoChange} style={{ display: 'none' }} />
+                                                        <p className="rp-hint" style={{ marginTop: '0.6rem' }}>Describe where to place the logo in the Details step under "Additional Notes".</p>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
 
-                                    {/* ── BASE SECTION ── */}
-                                    <div className="extras-section">
+                                ) : sculptureCategory === 'Standard Showpiece' ? (
+                                /* ══ STANDARD SHOWPIECE — add-on logo shape + text/content ══ */
+                                    <div className="wizard-step-content">
+                                        <p className="wizard-hint">Customise your showpiece with a logo and text.</p>
+
+                                        {/* Logo shape */}
+                                        <div className="extras-section">
+                                            <h3 className="extras-section-title">Add-on Logo</h3>
+                                            <div className="luge-option-cards">
+                                                {[
+                                                    { key: 'round',  label: 'Round',         desc: 'Logo placed inside a circular shape' },
+                                                    { key: 'square', label: 'Square',         desc: 'Logo placed inside a square / rectangular shape' },
+                                                    { key: 'shape',  label: 'Custom Shape',   desc: 'Logo takes the shape of the item you upload' },
+                                                    { key: 'none',   label: 'No Logo',        desc: 'Skip the add-on logo' },
+                                                ].map(({ key, label, desc }) => (
+                                                    <button
+                                                        key={key}
+                                                        className={`luge-option-card ${standardLogoShape === key ? 'active' : ''}`}
+                                                        onClick={() => { setStandardLogoShape(key); updatePanel('logoFile', null); }}
+                                                    >
+                                                        <span className="luge-option-label">{label}</span>
+                                                        <span className="luge-option-desc">{desc}</span>
+                                                        {standardLogoShape === key && <div className="rp-picker-check" style={{position:'absolute',top:'0.5rem',right:'0.5rem'}}><Check size={14}/></div>}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {standardLogoShape && standardLogoShape !== 'none' && (
+                                                <div style={{ marginTop: '0.75rem' }}>
+                                                    <div className="rp-upload-zone" onClick={() => logoInputRef.current?.click()}>
+                                                        {panel.logoFile ? (
+                                                            <div className="rp-file-preview">
+                                                                <img src={URL.createObjectURL(panel.logoFile)} alt="logo" className="rp-thumb" />
+                                                                <span className="rp-file-name">{panel.logoFile.name}</span>
+                                                                <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('logoFile', null); }}><Trash2 size={14}/></button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="rp-upload-placeholder">
+                                                                <Upload size={18} />
+                                                                <span>{standardLogoShape === 'shape' ? 'Upload item image for shape reference' : 'Upload logo'}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <input type="file" ref={logoInputRef} accept="image/*" onChange={handlePanelLogoChange} style={{ display: 'none' }} />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Text / content */}
+                                        <div className="extras-section">
+                                            <h3 className="extras-section-title">Text &amp; Content</h3>
+                                            <div className="luge-option-cards">
+                                                {[
+                                                    { key: 'names',  label: 'Names / Words', desc: 'Add text, names, or a message engraved on the showpiece' },
+                                                    { key: 'images', label: 'Images Only',    desc: 'Add an additional image or graphic element' },
+                                                    { key: 'both',   label: 'Both',           desc: 'Names / words AND an additional image together' },
+                                                    { key: 'none',   label: 'None',           desc: 'No text or extra content' },
+                                                ].map(({ key, label, desc }) => (
+                                                    <button
+                                                        key={key}
+                                                        className={`luge-option-card ${standardTextOption === key ? 'active' : ''}`}
+                                                        onClick={() => setStandardTextOption(key)}
+                                                    >
+                                                        <span className="luge-option-label">{label}</span>
+                                                        <span className="luge-option-desc">{desc}</span>
+                                                        {standardTextOption === key && <div className="rp-picker-check" style={{position:'absolute',top:'0.5rem',right:'0.5rem'}}><Check size={14}/></div>}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {(standardTextOption === 'names' || standardTextOption === 'both') && (
+                                                <textarea
+                                                    className="wizard-textarea"
+                                                    placeholder="Enter names, words, or message to engrave..."
+                                                    value={standardText}
+                                                    onChange={e => setStandardText(e.target.value)}
+                                                    rows={3}
+                                                    style={{ marginTop: '0.75rem' }}
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+
+                                ) : /* ══ LUGE OPTIONS ══ */
+                                selectedLugeType === 'double-martini' ? (
+                                    <div className="wizard-step-content">
+                                        <p className="wizard-hint">Choose where you'd like to add your logo on the luge.</p>
+                                        <div className="luge-option-cards">
+                                            {[
+                                                { key: 'top',   label: 'Top Logo Only',    desc: 'Logo engraved on the top surface of the luge' },
+                                                { key: 'addon', label: 'Add-on Logo Only',  desc: 'Logo placed on the side / front face of the luge' },
+                                                { key: 'both',  label: 'Both',              desc: 'Top logo + add-on logo on the same luge' },
+                                            ].map(({ key, label, desc }) => (
+                                                <button
+                                                    key={key}
+                                                    className={`luge-option-card ${lugeLogoOption === key ? 'active' : ''}`}
+                                                    onClick={() => { setLugeLogoOption(key); updatePanel('logoFile', null); }}
+                                                >
+                                                    <span className="luge-option-label">{label}</span>
+                                                    <span className="luge-option-desc">{desc}</span>
+                                                    {lugeLogoOption === key && <div className="rp-picker-check" style={{position:'absolute',top:'0.5rem',right:'0.5rem'}}><Check size={14}/></div>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {lugeLogoOption && (
+                                            <div className="extras-section" style={{ marginTop: '1.25rem' }}>
+                                                <h3 className="extras-section-title">Upload your logo</h3>
+                                                <div className="rp-upload-zone" onClick={() => logoInputRef.current?.click()}>
+                                                    {panel.logoFile ? (
+                                                        <div className="rp-file-preview">
+                                                            <img src={URL.createObjectURL(panel.logoFile)} alt="logo" className="rp-thumb" />
+                                                            <span className="rp-file-name">{panel.logoFile.name}</span>
+                                                            <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('logoFile', null); }}><Trash2 size={14}/></button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="rp-upload-placeholder">
+                                                            <Upload size={18} /><span>Upload logo</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <input type="file" ref={logoInputRef} accept="image/*" onChange={handlePanelLogoChange} style={{ display: 'none' }} />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                ) : selectedLugeType === 'tube' ? (
+                                /* ══ TUBE LUGE OPTIONS ══ */
+                                    <div className="wizard-step-content">
+                                        <p className="wizard-hint">Choose the style for your tube luge.</p>
+                                        <div className="luge-option-cards">
+                                            {[
+                                                { key: 'inclusion', label: 'Inclusion',     desc: 'Upload an item to freeze inside the ice' },
+                                                { key: 'etched',    label: 'Etched',         desc: 'Logo carved / engraved into the ice' },
+                                                { key: 'paper',     label: 'Paper Logo',     desc: 'Printed paper effect frozen inside the ice' },
+                                                { key: 'shape',     label: 'AI Shape',       desc: 'Upload a reference — AI recreates the tube luge as that shape' },
+                                            ].map(({ key, label, desc }) => (
+                                                <button
+                                                    key={key}
+                                                    className={`luge-option-card ${tubeLugeOption === key ? 'active' : ''}`}
+                                                    onClick={() => { setTubeLugeOption(key); updatePanel('logoFile', null); }}
+                                                >
+                                                    <span className="luge-option-label">{label}</span>
+                                                    <span className="luge-option-desc">{desc}</span>
+                                                    {tubeLugeOption === key && <div className="rp-picker-check" style={{position:'absolute',top:'0.5rem',right:'0.5rem'}}><Check size={14}/></div>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {tubeLugeOption && (
+                                            <div className="extras-section" style={{ marginTop: '1.25rem' }}>
+                                                <h3 className="extras-section-title">
+                                                    {tubeLugeOption === 'inclusion' ? 'Upload the item to freeze inside'
+                                                     : tubeLugeOption === 'shape'   ? 'Upload shape reference image'
+                                                     : 'Upload your logo'}
+                                                </h3>
+                                                {tubeLugeOption === 'inclusion' && <p className="rp-hint">Upload an image of the item you want frozen inside the ice.</p>}
+                                                {tubeLugeOption === 'shape' && <p className="rp-hint">Upload a reference image of the item — the AI will model the tube luge as that shape.</p>}
+                                                <div className="rp-upload-zone" onClick={() => logoInputRef.current?.click()}>
+                                                    {panel.logoFile ? (
+                                                        <div className="rp-file-preview">
+                                                            <img src={URL.createObjectURL(panel.logoFile)} alt="upload" className="rp-thumb" />
+                                                            <span className="rp-file-name">{panel.logoFile.name}</span>
+                                                            <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('logoFile', null); }}><Trash2 size={14}/></button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="rp-upload-placeholder">
+                                                            <Upload size={18} />
+                                                            <span>{tubeLugeOption === 'shape' ? 'Upload reference image' : tubeLugeOption === 'inclusion' ? 'Upload item image' : 'Upload logo'}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <input type="file" ref={logoInputRef} accept="image/*" onChange={handlePanelLogoChange} style={{ display: 'none' }} />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                ) : (
+                                /* ══ STANDARD EXTRAS (non-luge sculptures) ══ */
+                                    <div className="wizard-step-content wizard-extras-combined">
+                                        <p className="wizard-hint">Customise your sculpture with a base, topper, and logo.</p>
+
+                                        {/* ── BASE SECTION ── */}
+                                        <div className="extras-section">
                                         <h3 className="extras-section-title">Base</h3>
                                         <div className="rp-toggle-row">
                                             <span>Add a base?</span>
@@ -1598,7 +1999,9 @@ const ChatInterface = () => {
                                             </>
                                         )}
                                     </div>
-                                </div>
+                                    </div>
+                                )}
+                                </>
                             )}
 
                             {/* ---- CUSTOM STEP 3: REFERENCES ---- */}
@@ -1639,36 +2042,99 @@ const ChatInterface = () => {
                                 <div className="wizard-step-content wizard-review">
                                     <p className="wizard-hint">Review your selections before generating.</p>
                                     <div className="review-grid">
+                                        {/* Category */}
                                         <div className="review-item">
-                                            <span className="review-label">Sculpture</span>
-                                            <span className="review-value">
-                                                {panel.selectedSculpture ? panel.selectedSculpture.name
-                                                    : panel.customSculptureFile ? `Custom: ${panel.customSculptureFile.name}`
-                                                    : <em>None selected</em>}
-                                            </span>
+                                            <span className="review-label">Category</span>
+                                            <span className="review-value">{sculptureCategoryMap.find(c => c.key === sculptureCategory)?.label || <em>None</em>}</span>
                                         </div>
-                                        <div className="review-item">
-                                            <span className="review-label">Base</span>
-                                            <span className="review-value">
-                                                {!wantBase ? 'No base'
-                                                    : panel.selectedBase ? panel.selectedBase.name
-                                                    : panel.customBaseFile ? `Custom: ${panel.customBaseFile.name}`
-                                                    : <em>None selected</em>}
-                                            </span>
-                                        </div>
-                                        <div className="review-item">
-                                            <span className="review-label">Topper</span>
-                                            <span className="review-value">
-                                                {!wantTopper ? 'No topper'
-                                                    : panel.selectedTopper ? panel.selectedTopper.name
-                                                    : panel.customTopperFile ? `Custom: ${panel.customTopperFile.name}`
-                                                    : <em>None selected</em>}
-                                            </span>
-                                        </div>
-                                        <div className="review-item">
-                                            <span className="review-label">Logo</span>
-                                            <span className="review-value">{!wantLogo ? 'No logo' : panel.logoFile ? panel.logoFile.name : <em>None uploaded</em>}</span>
-                                        </div>
+
+                                        {/* Sculpture (not shown for Standard Showpiece which uses base as primary) */}
+                                        {sculptureCategory !== 'Standard Showpiece' && (
+                                            <div className="review-item">
+                                                <span className="review-label">Sculpture</span>
+                                                <span className="review-value">
+                                                    {panel.selectedSculpture ? panel.selectedSculpture.name
+                                                        : panel.customSculptureFile ? `Custom: ${panel.customSculptureFile.name}`
+                                                        : <em>None selected</em>}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* 3D Showpiece / Seafood Display logo */}
+                                        {(sculptureCategory === '3D Showpiece' || sculptureCategory === 'Seafood Display') && (
+                                            <div className="review-item">
+                                                <span className="review-label">Logo</span>
+                                                <span className="review-value">
+                                                    {!wantLogo ? 'No logo'
+                                                     : threeDLogoStyle ? `${threeDLogoStyle} style${panel.logoFile ? ` — ${panel.logoFile.name}` : ''}`
+                                                     : <em>Style not chosen</em>}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Standard Showpiece */}
+                                        {sculptureCategory === 'Standard Showpiece' && (
+                                            <>
+                                                <div className="review-item">
+                                                    <span className="review-label">Base</span>
+                                                    <span className="review-value">{panel.selectedBase ? panel.selectedBase.name : <em>None selected</em>}</span>
+                                                </div>
+                                                <div className="review-item">
+                                                    <span className="review-label">Add-on Logo</span>
+                                                    <span className="review-value">
+                                                        {!standardLogoShape || standardLogoShape === 'none' ? 'No logo'
+                                                         : `${standardLogoShape} shape${panel.logoFile ? ` — ${panel.logoFile.name}` : ''}`}
+                                                    </span>
+                                                </div>
+                                                <div className="review-item">
+                                                    <span className="review-label">Text / Content</span>
+                                                    <span className="review-value">
+                                                        {!standardTextOption || standardTextOption === 'none' ? 'None'
+                                                         : standardTextOption === 'names' ? `Names/words${standardText ? `: "${standardText}"` : ''}`
+                                                         : standardTextOption === 'images' ? 'Image element'
+                                                         : `Names + image${standardText ? `: "${standardText}"` : ''}`}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Luge-specific */}
+                                        {selectedLugeType === 'double-martini' && (
+                                            <div className="review-item">
+                                                <span className="review-label">Logo Placement</span>
+                                                <span className="review-value">
+                                                    {lugeLogoOption === 'top' ? 'Top only' : lugeLogoOption === 'addon' ? 'Add-on only' : lugeLogoOption === 'both' ? 'Top + add-on' : <em>None</em>}
+                                                    {panel.logoFile && ` — ${panel.logoFile.name}`}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {selectedLugeType === 'tube' && (
+                                            <div className="review-item">
+                                                <span className="review-label">Tube Style</span>
+                                                <span className="review-value">
+                                                    {tubeLugeOption === 'inclusion' ? 'Inclusion' : tubeLugeOption === 'etched' ? 'Etched' : tubeLugeOption === 'paper' ? 'Paper logo' : tubeLugeOption === 'shape' ? 'AI shape' : <em>None</em>}
+                                                    {panel.logoFile && ` — ${panel.logoFile.name}`}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Standard extras (Ice Bar / plain Luge) */}
+                                        {!selectedLugeType && !['3D Showpiece','Seafood Display','Standard Showpiece','Ice Cubes'].includes(sculptureCategory) && (
+                                            <>
+                                                <div className="review-item">
+                                                    <span className="review-label">Base</span>
+                                                    <span className="review-value">{!wantBase ? 'No base' : panel.selectedBase?.name || panel.customBaseFile?.name || <em>None</em>}</span>
+                                                </div>
+                                                <div className="review-item">
+                                                    <span className="review-label">Topper</span>
+                                                    <span className="review-value">{!wantTopper ? 'No topper' : panel.selectedTopper?.name || panel.customTopperFile?.name || <em>None</em>}</span>
+                                                </div>
+                                                <div className="review-item">
+                                                    <span className="review-label">Logo</span>
+                                                    <span className="review-value">{!wantLogo ? 'No logo' : panel.logoFile?.name || <em>None uploaded</em>}</span>
+                                                </div>
+                                            </>
+                                        )}
                                         <div className="review-item">
                                             <span className="review-label">References</span>
                                             <span className="review-value">{panel.referenceFiles.length > 0 ? `${panel.referenceFiles.length} file(s)` : <em>None</em>}</span>
