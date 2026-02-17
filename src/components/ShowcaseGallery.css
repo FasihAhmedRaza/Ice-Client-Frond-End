@@ -30,6 +30,7 @@
     background: #0c0e14;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
     z-index: 9001;
     box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
     animation: scDrawerIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -107,54 +108,57 @@
 .showcase-cat-tabs {
     display: flex;
     gap: 6px;
-    padding: 10px 14px;
+    padding: 10px 12px;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
     flex-shrink: 0;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.02);
+    align-items: center;
 }
 .showcase-cat-tabs::-webkit-scrollbar { display: none; }
 
 .showcase-cat-tab {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 5px 12px;
+    gap: 4px;
+    padding: 4px 12px;
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
     color: rgba(255, 255, 255, 0.45);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.2s;
+    transition: all 0.18s;
     flex-shrink: 0;
+    line-height: 1;
 }
 .showcase-cat-tab:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.09);
     color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(255, 255, 255, 0.18);
 }
 .showcase-cat-tab.active {
-    background: rgba(37, 99, 235, 0.18);
-    border-color: rgba(37, 99, 235, 0.45);
-    color: #60a5fa;
+    background: rgba(37, 99, 235, 0.2);
+    border-color: rgba(37, 99, 235, 0.5);
+    color: #93c5fd;
     font-weight: 600;
 }
 
 .showcase-cat-count {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
     padding: 1px 5px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.4);
-    line-height: 1.4;
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.35);
+    line-height: 1.5;
 }
 .showcase-cat-tab.active .showcase-cat-count {
-    background: rgba(37, 99, 235, 0.25);
+    background: rgba(37, 99, 235, 0.3);
     color: #93c5fd;
 }
 
@@ -164,6 +168,8 @@
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
@@ -204,17 +210,23 @@
 .showcase-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 3px;
-    padding: 3px;
+    gap: 4px;
+    padding: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    align-content: start;
 }
 
 .showcase-card {
     position: relative;
+    width: 100%;
     aspect-ratio: 1 / 1;
     overflow: hidden;
     cursor: pointer;
     background: #1a1d24;
-    border-radius: 2px;
+    border-radius: 6px;
+    /* Fallback for browsers without aspect-ratio */
+    min-height: 0;
 }
 
 .showcase-card img {
@@ -597,17 +609,23 @@
         border-radius: 0;
     }
     .showcase-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3px;
+        padding: 3px;
     }
     .chat-fav-banner { padding: 8px 14px; gap: 8px; }
     .chat-fav-banner-text { font-size: 0.72rem; }
 }
 
 @media (max-width: 480px) {
-    .showcase-drawer-header { padding: 12px; }
-    .showcase-cat-tabs { padding: 8px 10px; gap: 5px; }
-    .showcase-cat-tab { font-size: 11px; padding: 4px 10px; }
-    .showcase-grid { gap: 2px; padding: 2px; }
+    .showcase-drawer-header { padding: 10px 14px; }
+    .showcase-cat-tabs { padding: 7px 10px; gap: 5px; }
+    .showcase-cat-tab { font-size: 10px; padding: 3px 9px; }
+    .showcase-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2px;
+        padding: 2px;
+    }
     .chat-fav-banner-text { font-size: 0.68rem; }
 }
 

@@ -727,31 +727,31 @@ const ChatInterface = () => {
         if (panel.logoFile && (sculptureCategory === '3D Showpiece' || sculptureCategory === 'Seafood Display') && wantLogo && threeDLogoStyle) {
             filesToSend.push(panel.logoFile);
             prompts[idx] = threeDLogoStyle === 'paper'
-                ? 'LOGO — apply this logo as a coloured printed paper effect placed on the sculpture at the position described in the brief'
-                : 'LOGO — engrave/etch this logo into the sculpture ice using a snowfilled/frosted carved effect at the position described in the brief';
+                ? 'CLIENT LOGO — Place this logo as a PRINTED PAPER CARD element physically ON the surface of the ice sculpture. The logo MUST have a solid white or colored rectangular background card behind it. It should look exactly like a real printed paper sign or vinyl sticker placed flat against the ice surface — fully colored, clearly readable, with its white/colored background intact. Do NOT engrave or etch. Do NOT remove the background. Do NOT change the sculpture shape.'
+                : 'CLIENT LOGO — Engrave and etch this exact logo into the ice surface as a carved snofilled/frosted effect. The logo should appear carved INTO the ice, with a frosted white carved appearance. Reproduce all fonts, graphics, and layout precisely. Do NOT change the sculpture shape in any way.';
             idx++;
         }
         // Logo — Standard Showpiece
         if (panel.logoFile && sculptureCategory === 'Standard Showpiece' && standardLogoShape && standardLogoShape !== 'none') {
             filesToSend.push(panel.logoFile);
             const shapePrompt = { round: 'round circular', square: 'square/rectangular', shape: 'custom shape matching this uploaded item silhouette' }[standardLogoShape];
-            prompts[idx] = `ADD-ON LOGO — apply this logo as a ${shapePrompt} add-on element on the showpiece.`;
+            prompts[idx] = `CLIENT LOGO — Place this logo as a printed paper card element on the showpiece. The card must have a solid white or colored ${shapePrompt} background. It should look like a real printed paper label or sign physically attached to the ice surface — fully colored and clearly readable. Do NOT change the sculpture shape.`;
             idx++;
         }
         // Logo — Double / Martini luge
         if (panel.logoFile && selectedLugeType === 'double-martini' && lugeLogoOption) {
             filesToSend.push(panel.logoFile);
-            const pos = { top: 'the top surface', addon: 'the side/front (add-on position)', both: 'BOTH the top surface AND the side/front (add-on position)' }[lugeLogoOption];
-            prompts[idx] = `CLIENT LOGO — This is the ONLY logo to use. Apply it clearly and accurately on ${pos} of the ice luge. Engrave or etch it directly into the ice surface so it reads as a carved/snofilled effect. Preserve the exact font, layout, and all graphic elements from this uploaded logo. Do NOT invent or use any other logo, text, or branding.`;
+            const pos = { top: 'the top flat surface', addon: 'the front face (side add-on position)', both: 'BOTH the top flat surface AND the front face' }[lugeLogoOption];
+            prompts[idx] = `CLIENT LOGO — This is the ONLY logo/branding to use. Place this logo as a PRINTED PAPER CARD element on ${pos} of the ice luge. The logo MUST have a solid white or colored rectangular background card behind all the text and graphics — exactly like a printed paper sign or vinyl label physically attached to the ice. It should be fully colored, sharp, and clearly readable. Do NOT engrave or etch it. Do NOT remove the background. Do NOT invent other logos. Do NOT modify the luge shape in any way.`;
             idx++;
         }
         // Tube luge file (logo / inclusion item / shape reference)
         if (panel.logoFile && selectedLugeType === 'tube' && tubeLugeOption) {
             filesToSend.push(panel.logoFile);
-            if (tubeLugeOption === 'etched')    prompts[idx] = 'CLIENT LOGO — This is the ONLY logo/branding to use. Etch and carve this exact logo into the tube luge ice surface with a snofilled/frosted carved effect. Reproduce all fonts, graphics, and layout precisely. Do NOT invent or add any other text or logos.';
-            if (tubeLugeOption === 'paper')     prompts[idx] = 'CLIENT LOGO — This is the ONLY logo/branding to use. Embed this exact logo as a printed paper frozen inside the tube luge ice. Keep all elements together on one solid white rectangular paper background. Do NOT invent or use any other text or logos.';
-            if (tubeLugeOption === 'inclusion') prompts[idx] = 'INCLUSION ITEM — freeze this exact item inside the tube luge ice as a realistic ice inclusion. It should be clearly visible through the clear transparent ice, perfectly preserved in its original form.';
-            if (tubeLugeOption === 'shape')     prompts[idx] = 'SHAPE REFERENCE — redesign the tube luge so its overall external shape and silhouette closely matches this reference object. The result must still be rendered as a clear photorealistic ice tube luge.';
+            if (tubeLugeOption === 'etched')    prompts[idx] = 'CLIENT LOGO — Etch and carve this exact logo into the tube luge ice surface with a snofilled/frosted carved effect. It should appear carved INTO the ice with visible depth. Reproduce all fonts, graphics, and layout precisely. Do NOT invent or add any other text or logos. Do NOT change the tube luge shape.';
+            if (tubeLugeOption === 'paper')     prompts[idx] = 'CLIENT LOGO — Place this logo as a PRINTED PAPER CARD element on the front face of the tube luge. The logo MUST have a solid white rectangular background card behind it — like a real printed label physically attached to the ice. Fully colored, clearly readable, background intact. Do NOT remove the background. Do NOT change the tube luge shape.';
+            if (tubeLugeOption === 'inclusion') prompts[idx] = 'INCLUSION ITEM — Freeze this exact item inside the tube luge ice as a realistic ice inclusion. It should be clearly visible through the clear transparent ice, perfectly preserved in its original form. Do NOT change the tube luge shape.';
+            if (tubeLugeOption === 'shape')     prompts[idx] = 'SHAPE REFERENCE — Redesign the tube luge so its overall external shape and silhouette closely matches this reference object. The result must still be rendered as a clear photorealistic ice tube luge.';
             idx++;
         }
         // Logo — standard Ice Bar / Luge (no special sub-type) fallback
