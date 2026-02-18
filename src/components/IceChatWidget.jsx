@@ -1,54 +1,37 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Snowflake, ChevronDown } from 'lucide-react';
-import api from '../api';
-import { API_BASE_URL } from '../config';
 
-const FALLBACK_ANSWERS = {
-    logo: "Yes, we can add custom logos to ice sculptures! We use a combination of CNC carving and hand-finishing techniques to embed logos, text, or branding into the ice with incredible detail. The logo can be either carved into the surface or frozen within the block for a stunning 3D effect. Just upload your logo in the sculpture builder and we'll handle the rest.",
-    cost: "Ice sculpture pricing varies based on size, complexity, and design. A simple single-block sculpture typically starts around $300–$500, while more elaborate multi-block pieces or custom designs can range from $800 to several thousand dollars. We'd be happy to provide a detailed quote once we understand your vision — just use our sculpture builder to get started!",
-    last: "Under ideal conditions (indoors, around 65–70°F), a standard ice sculpture will maintain its shape for approximately 4–6 hours. Larger sculptures and those displayed in cooler environments can last 8–12 hours or more. We also offer drip trays and LED lighting setups that enhance the display while managing the melting process elegantly.",
-    type: "We offer a wide range of ice sculptures including luges (drink slides), ice bars, ice cubes with embedded logos, showpieces, wedding sculptures, and fully custom designs. Our gallery includes over 70 templates across categories like Luges, Ice Bars, Ice Cubes, Showpieces, and Wedding pieces. You can browse all of them in our sculpture builder!",
-    size: "We offer sculptures in multiple sizes: Small (1–2 feet, great for table centerpieces), Medium (3–5 feet, perfect for buffet displays), Large (6–8+ feet, ideal as event focal points), and fully custom dimensions. The right size depends on your venue and event type — we're happy to recommend the best fit.",
-    deliver: "Yes, we provide full delivery and setup services! Our team will transport the sculpture in a refrigerated vehicle and professionally set it up at your venue with drip trays, lighting, and any accessories needed. We typically arrive 1–2 hours before your event to ensure everything looks perfect.",
-    event: "Ice sculptures are perfect for weddings, corporate events, galas, product launches, holiday parties, bar/bat mitzvahs, and trade shows. They serve as stunning centerpieces, functional drink luges, branded displays, or artistic showpieces. Whatever your event, a custom ice sculpture adds an unforgettable wow factor.",
-    order: "We recommend placing your order at least 2–3 weeks in advance for standard designs, and 4–6 weeks for complex custom pieces. During peak seasons (holidays, wedding season), earlier booking is advisable. However, we can sometimes accommodate rush orders within 1 week depending on availability.",
-    temperature: "For the best display longevity, keep the sculpture in an air-conditioned indoor space around 65–70°F, away from direct sunlight, heat sources, and strong air currents. Outdoors, a shaded area works best. We provide professional drip trays and can advise on the optimal placement for your specific venue.",
-    lighting: "Absolutely! LED lighting dramatically enhances ice sculptures, creating beautiful color effects and illuminating the translucent ice from within. We offer built-in LED bases with customizable colors, spotlights, and even programmable color-changing setups to match your event theme or branding.",
-    clear: "Clear ice is made through a specialized slow-freezing process that removes air bubbles, resulting in crystal-clear, glass-like ice that's ideal for detailed carvings and logo work. White or cloudy ice freezes faster and has a frosted, opaque look. We primarily use clear ice for our sculptures as it showcases details beautifully and lasts longer.",
-    custom: "Yes, we specialize in custom designs! Whether it's a company logo, a portrait, an architectural model, or any creative concept, our artists can bring your vision to life in ice. Use our sculpture builder to describe your idea, upload reference images, and we'll generate a photorealistic preview of your custom sculpture.",
-    wedding: "We create stunning wedding ice sculptures including elegant swans, intertwined hearts, monogram displays, champagne luges, and custom centerpieces. Many couples also love our ice bars for cocktail hour. Each piece is hand-crafted to complement your wedding theme and can incorporate your names, date, or monogram.",
-};
+// Short, direct, human-style answers
+const QA = [
+    { keys: ['how much', 'cost', 'price', 'pricing', 'expensive', 'budget', 'quote'], answer: "Prices start around $300–$500 for simple pieces, and go up from there based on size and complexity. Contact us for a custom quote!" },
+    { keys: ['how long', 'last', 'melt', 'hours', 'duration'], answer: "Indoors at 65–70°F, about 4–6 hours. Larger sculptures or cooler rooms can last 8–12+ hours." },
+    { keys: ['logo', 'brand', 'emblem', 'branding'], answer: "Yes! We embed logos into ice — carved, colored, or as a paper card on the surface. Just upload your logo in the builder." },
+    { keys: ['deliver', 'shipping', 'transport', 'setup'], answer: "Yes, we deliver and set up at your venue with drip trays and lighting, usually 1–2 hours before your event." },
+    { keys: ['how far', 'advance', 'book', 'lead time', 'rush', 'order'], answer: "2–3 weeks for standard designs, 4–6 weeks for custom. Rush orders may be possible — just ask!" },
+    { keys: ['what type', 'what kind', 'what do you', 'categories', 'options', 'offer'], answer: "We do luges, ice bars, showpieces, wedding pieces, ice cubes with logos, and fully custom designs — 70+ templates available." },
+    { keys: ['size', 'dimension', 'how big', 'how tall', 'feet'], answer: "Small (1–2 ft), Medium (3–5 ft), Large (6–8+ ft). Custom sizes available too." },
+    { keys: ['light', 'led', 'glow', 'illuminat'], answer: "Absolutely! We offer LED bases with color options to make your sculpture glow beautifully." },
+    { keys: ['clear', 'cloudy', 'transparent', 'white ice', 'opaque'], answer: "Clear ice is crystal-like and shows detail best. Cloudy ice is faster to make but less refined. We use clear ice for all our sculptures." },
+    { keys: ['custom', 'unique', 'bespoke', 'special design', 'personali'], answer: "100%! We do fully custom sculptures from any idea or reference image. Use the builder above to get started." },
+    { keys: ['wedding', 'bride', 'groom', 'marriage', 'engagement'], answer: "We love weddings! Swans, hearts, monograms, champagne luges, ice bars — all hand-crafted to match your theme." },
+    { keys: ['event', 'party', 'corporate', 'gala', 'birthday', 'celebration'], answer: "We do weddings, corporate events, galas, holiday parties, trade shows, birthdays — any occasion!" },
+    { keys: ['temperature', 'temp', 'warm', 'indoor', 'outdoor', 'display'], answer: "Best indoors at 65–70°F, away from direct sunlight. We provide drip trays and placement advice." },
+    { keys: ['luge', 'drink', 'slide', 'shot'], answer: "Luges are ice sculptures with channels to slide drinks through — a crowd favorite! We have martini, tube, double, and custom luge styles." },
+    { keys: ['hello', 'hi', 'hey', 'howdy'], answer: "Hey! 👋 What can I help you with today?" },
+    { keys: ['thank', 'thanks', 'thx'], answer: "You're welcome! Anything else I can help with?" },
+];
 
-const getFallbackAnswer = (userMsg) => {
+function getAnswer(userMsg) {
     const msg = userMsg.toLowerCase();
-    const keywords = [
-        { keys: ['logo', 'brand', 'emblem', 'text on', 'name on'], answer: FALLBACK_ANSWERS.logo },
-        { keys: ['cost', 'price', 'how much', 'expensive', 'afford', 'budget', 'pricing'], answer: FALLBACK_ANSWERS.cost },
-        { keys: ['last', 'long', 'melt', 'duration', 'how many hours'], answer: FALLBACK_ANSWERS.last },
-        { keys: ['type', 'kind', 'what do you offer', 'categories', 'options'], answer: FALLBACK_ANSWERS.type },
-        { keys: ['size', 'dimension', 'big', 'small', 'tall', 'feet', 'large'], answer: FALLBACK_ANSWERS.size },
-        { keys: ['deliver', 'shipping', 'transport', 'setup', 'install'], answer: FALLBACK_ANSWERS.deliver },
-        { keys: ['event', 'party', 'occasion', 'celebration', 'function'], answer: FALLBACK_ANSWERS.event },
-        { keys: ['order', 'advance', 'book', 'ahead', 'lead time', 'rush'], answer: FALLBACK_ANSWERS.order },
-        { keys: ['temperature', 'temp', 'warm', 'cold', 'indoor', 'outdoor', 'display'], answer: FALLBACK_ANSWERS.temperature },
-        { keys: ['light', 'led', 'glow', 'illuminat'], answer: FALLBACK_ANSWERS.lighting },
-        { keys: ['clear', 'white', 'cloudy', 'transparent', 'opaque'], answer: FALLBACK_ANSWERS.clear },
-        { keys: ['custom', 'unique', 'bespoke', 'personali', 'special design'], answer: FALLBACK_ANSWERS.custom },
-        { keys: ['wedding', 'bride', 'groom', 'marriage', 'engagement'], answer: FALLBACK_ANSWERS.wedding },
-    ];
 
-    for (const { keys, answer } of keywords) {
-        if (keys.some(k => msg.includes(k))) return answer;
+    for (const { keys, answer } of QA) {
+        if (keys.some(k => msg.includes(k))) {
+            return answer;
+        }
     }
 
-    // Generic fallback
-    const genericAnswers = [
-        "Great question! Ice sculptures are incredibly versatile — we work with everything from elegant wedding centerpieces to corporate branded luges and custom artistic showpieces. I'd recommend using our sculpture builder above to explore our full range of 70+ templates and see what inspires you. If you have something specific in mind, feel free to describe it!",
-        "That's a wonderful thing to consider! At Ice Butcher, we combine traditional ice carving artistry with modern technology to create stunning pieces for any occasion. Our sculpture builder tool lets you preview exactly how your piece will look before we carve it. Would you like to know about our specific categories, pricing, or custom design options?",
-        "I'd love to help with that! Our team has extensive experience creating ice sculptures for all sorts of events and purposes. For the best experience, try our step-by-step sculpture builder — it'll walk you through selecting a style, adding customizations like logos or bases, and generating a photorealistic preview. Is there something specific about ice sculpting you'd like to know more about?",
-    ];
-    return genericAnswers[Math.floor(Math.random() * genericAnswers.length)];
-};
+    return "Not sure about that one! Try asking about pricing, delivery, sizing, or our sculpture types.";
+}
 
 const IceChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -59,7 +42,6 @@ const IceChatWidget = () => {
         }
     ]);
     const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
     const [hasUnread, setHasUnread] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -68,7 +50,7 @@ const IceChatWidget = () => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages, isLoading]);
+    }, [messages]);
 
     useEffect(() => {
         if (isOpen && inputRef.current) {
@@ -76,41 +58,11 @@ const IceChatWidget = () => {
         }
     }, [isOpen]);
 
-    const handleSend = async () => {
-        if (!input.trim() || isLoading) return;
-
+    const handleSend = () => {
+        if (!input.trim()) return;
         const userMsg = input.trim();
-        setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
         setInput('');
-        setIsLoading(true);
-
-        try {
-            const formData = new FormData();
-            formData.append('user_input', userMsg);
-            formData.append('aspect_ratio', '9:16');
-            formData.append('resolution', '2K');
-            formData.append('image_prompts', JSON.stringify({}));
-
-            const response = await api.post(`${API_BASE_URL}/api/chatbot`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            const reply = response.data.response || "I can help you with ice sculpting questions!";
-            setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
-            refreshSuggestions();
-
-            if (!isOpen) setHasUnread(true);
-        } catch (error) {
-            console.error('Chat widget error:', error);
-            const fallback = getFallbackAnswer(userMsg);
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: fallback
-            }]);
-            refreshSuggestions();
-        } finally {
-            setIsLoading(false);
-        }
+        handleSendWithInput(userMsg);
     };
 
     const handleKeyDown = (e) => {
@@ -153,39 +105,19 @@ const IceChatWidget = () => {
         handleSendWithInput(q);
     };
 
-    const handleSendWithInput = async (text) => {
-        if (!text.trim() || isLoading) return;
+    const handleSendWithInput = (text) => {
+        if (!text.trim()) return;
 
         setMessages(prev => [...prev, { role: 'user', content: text }]);
-        setInput('');
-        setIsLoading(true);
 
-        try {
-            const formData = new FormData();
-            formData.append('user_input', text);
-            formData.append('aspect_ratio', '9:16');
-            formData.append('resolution', '2K');
-            formData.append('image_prompts', JSON.stringify({}));
-
-            const response = await api.post(`${API_BASE_URL}/api/chatbot`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: response.data.response || "I can help you with ice sculpting questions!"
-            }]);
-            refreshSuggestions();
-        } catch {
-            const fallback = getFallbackAnswer(text);
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: fallback
-            }]);
-            refreshSuggestions();
-        } finally {
-            setIsLoading(false);
-        }
+        // Answer instantly from local knowledge — no API call needed
+        const replyText = getAnswer(text);
+        setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: replyText
+        }]);
+        refreshSuggestions();
+        if (!isOpen) setHasUnread(true);
     };
 
     return (
@@ -220,12 +152,14 @@ const IceChatWidget = () => {
                                     <Snowflake size={12} />
                                 </div>
                             )}
-                            <div className="ice-chat-bubble">{msg.content}</div>
+                            <div className="ice-chat-bubble">
+                                {msg.content}
+                            </div>
                         </div>
                     ))}
 
                     {/* Suggestion questions after every bot response */}
-                    {!isLoading && messages.length > 0 && messages[messages.length - 1].role === 'assistant' && (
+                    {messages.length > 0 && messages[messages.length - 1].role === 'assistant' && (
                         <div className="ice-chat-quick-questions">
                             {suggestions.map((q, i) => (
                                 <button key={i} className="ice-chat-quick-btn" onClick={() => handleQuickQuestion(q)}>
@@ -235,16 +169,6 @@ const IceChatWidget = () => {
                         </div>
                     )}
 
-                    {isLoading && (
-                        <div className="ice-chat-msg ice-chat-bot">
-                            <div className="ice-chat-bot-avatar">
-                                <Snowflake size={12} />
-                            </div>
-                            <div className="ice-chat-bubble ice-chat-typing">
-                                <span></span><span></span><span></span>
-                            </div>
-                        </div>
-                    )}
                     <div ref={messagesEndRef} />
                 </div>
 
@@ -262,7 +186,7 @@ const IceChatWidget = () => {
                     <button
                         className="ice-chat-send"
                         onClick={handleSend}
-                        disabled={!input.trim() || isLoading}
+                        disabled={!input.trim()}
                     >
                         <Send size={16} />
                     </button>

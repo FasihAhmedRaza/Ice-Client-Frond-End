@@ -2480,11 +2480,13 @@ body {
   inset: 0;
   z-index: 1000;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   background: rgba(20, 18, 15, 0.55);
   backdrop-filter: blur(6px);
   animation: wizardFadeIn 0.25s ease;
+  overflow-y: auto;
+  padding: 3vh 0;
 }
 
 @keyframes wizardFadeIn {
@@ -2496,7 +2498,7 @@ body {
   position: relative;
   width: 94vw;
   max-width: 720px;
-  max-height: 88vh;
+  max-height: 94vh;
   background: #fdfcfa;
   border-radius: 1.25rem;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(37, 99, 235, 0.12);
@@ -3589,6 +3591,10 @@ body {
    RESPONSIVE BREAKPOINTS
    ============================================ */
 @media (max-width: 600px) {
+  .wizard-overlay {
+    padding: 0;
+    align-items: flex-start;
+  }
   .wizard-card {
     width: 100vw;
     max-width: 100vw;
@@ -3710,6 +3716,431 @@ body {
   .wizard-btn {
     padding: 0.45rem 0.9rem;
     font-size: 0.78rem;
+  }
+}
+
+/* ============================================
+   WIZARD – SELECTED TEMPLATE TRACKER
+   ============================================ */
+
+.wiz-selected-tracker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 1.5px solid #86efac;
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  margin-top: 0.5rem;
+  animation: wiz-tracker-in 0.2s ease;
+}
+
+.wiz-selected-tracker--top {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+@keyframes wiz-tracker-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.wiz-selected-tracker-left {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.wiz-selected-check {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(22,163,74,0.3);
+}
+
+.wiz-selected-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wiz-selected-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #16a34a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.wiz-selected-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #166534;
+  font-family: 'Space Grotesk', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+.wiz-selected-tracker-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.wiz-selected-thumb {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 0.45rem;
+  flex-shrink: 0;
+  border: 1.5px solid #86efac;
+}
+
+.wiz-selected-clear {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid #fca5a5;
+  background: #fff;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.wiz-selected-clear:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+}
+
+/* ============================================
+   WIZARD – VIEW ALL TEMPLATES PANEL
+   ============================================ */
+
+.wiz-view-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border: 1.5px dashed #c7d7f5;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #f0f5ff, #e8f0fe);
+  color: #2563eb;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif;
+  cursor: pointer;
+  transition: all 0.18s;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.wiz-view-all-btn:hover {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  border-color: #93c5fd;
+}
+
+.wiz-view-all-count {
+  font-size: 0.72rem;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 20px;
+  padding: 1px 7px;
+  font-weight: 700;
+}
+
+.wiz-gallery-panel {
+  border: 1.5px solid #dbeafe;
+  border-radius: 0.9rem;
+  background: #f8faff;
+  overflow: hidden;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.wiz-gallery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.85rem;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+}
+
+.wiz-gallery-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.wiz-gallery-close {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  font-family: 'Space Grotesk', sans-serif;
+  transition: background 0.15s;
+}
+
+.wiz-gallery-close:hover {
+  background: rgba(255,255,255,0.28);
+}
+
+.wiz-gallery-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.65rem 0.85rem 0;
+  background: #fff;
+  border: 1.5px solid #dbeafe;
+  border-radius: 0.6rem;
+  padding: 0.45rem 0.75rem;
+  color: #93a0af;
+  transition: border-color 0.2s;
+}
+
+.wiz-gallery-search:focus-within {
+  border-color: #2563eb;
+}
+
+.wiz-gallery-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: none;
+  font-size: 0.82rem;
+  color: #2d3748;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.wiz-gallery-search input::placeholder {
+  color: #b0bac7;
+}
+
+.wiz-gallery-clear {
+  background: none;
+  border: none;
+  color: #93a0af;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.wiz-gallery-clear:hover { color: #2563eb; }
+
+.wiz-gallery-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.6rem 0.85rem 0;
+}
+
+.wiz-gallery-cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  border: 1.5px solid #dbeafe;
+  background: #fff;
+  color: #6b7280;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.wiz-gallery-cat-btn:hover {
+  border-color: #93c5fd;
+  color: #2563eb;
+}
+
+.wiz-gallery-cat-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.wiz-gallery-cat-count {
+  font-size: 0.65rem;
+  opacity: 0.75;
+}
+
+.wiz-gallery-cat-btn.active .wiz-gallery-cat-count {
+  opacity: 0.9;
+}
+
+.wiz-gallery-meta {
+  font-size: 0.72rem;
+  color: #8a919a;
+  padding: 0.4rem 0.85rem 0.2rem;
+  font-style: italic;
+}
+
+.wiz-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #c7d7f5 transparent;
+}
+
+.wiz-gallery-grid::-webkit-scrollbar { width: 5px; }
+.wiz-gallery-grid::-webkit-scrollbar-thumb { background: #c7d7f5; border-radius: 4px; }
+
+.wiz-gallery-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 0.55rem;
+  padding: 0.3rem;
+  background: #fff;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.wiz-gallery-item:hover {
+  border-color: #93c5fd;
+  background: #f0f5ff;
+}
+
+.wiz-gallery-item.selected {
+  border-color: #2563eb;
+  background: rgba(37,99,235,0.07);
+}
+
+.wiz-gallery-img-wrap {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: 0.4rem;
+  background: #f0f4f8;
+  position: relative;
+}
+
+.wiz-gallery-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s;
+}
+
+.wiz-gallery-item:hover .wiz-gallery-img-wrap img {
+  transform: scale(1.06);
+}
+
+.wiz-gallery-check {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.wiz-gallery-name {
+  font-size: 0.62rem;
+  color: #4a5158;
+  text-align: center;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  width: 100%;
+}
+
+.wiz-gallery-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #b0bac7;
+  padding: 2rem 0;
+  font-size: 0.82rem;
+}
+
+.wiz-gallery-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.6rem;
+  border-top: 1px solid #dbeafe;
+  font-size: 0.78rem;
+  color: #8a919a;
+  background: #fff;
+}
+
+.wiz-gallery-pagination button {
+  background: #f0f5ff;
+  border: 1.5px solid #c7d7f5;
+  color: #2563eb;
+  border-radius: 0.45rem;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 0.75rem;
+  transition: background 0.15s;
+}
+
+.wiz-gallery-pagination button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.wiz-gallery-pagination button:not(:disabled):hover {
+  background: #dbeafe;
+}
+
+@media (max-width: 600px) {
+  .wiz-gallery-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -4803,6 +5234,21 @@ body {
   color: #1e293b;
   border: 1px solid #e2e8f0;
   border-bottom-left-radius: 4px;
+}
+
+/* Sculpture images in chat */
+.ice-chat-sculpture-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ice-chat-sculpture-img {
+  width: calc(50% - 3px);
+  border-radius: 8px;
+  object-fit: cover;
+  aspect-ratio: 1 / 1;
+  border: 1px solid #e2e8f0;
 }
 
 /* Typing indicator */

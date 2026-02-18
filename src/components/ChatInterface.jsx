@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import api from '../api';
-import { Send, Mic, Image as ImageIcon, X, ThumbsUp, ThumbsDown, Lightbulb, Wand2, Sun, Moon, Menu, Settings, ChevronDown, ChevronRight, ChevronLeft, Check, Sparkles, Video, Edit2, Upload, Trash2, ArrowRight, ArrowLeft, Layers, Paintbrush, RotateCcw, Gem, Zap, Eye, Clock, Download, Maximize2, Type, ImagePlus, Hammer, Heart } from 'lucide-react';
+import { Send, Mic, Image as ImageIcon, X, ThumbsUp, ThumbsDown, Lightbulb, Wand2, Sun, Moon, Menu, Settings, ChevronDown, ChevronRight, ChevronLeft, Check, Sparkles, Video, Edit2, Upload, Trash2, ArrowRight, ArrowLeft, Layers, Paintbrush, RotateCcw, Gem, Zap, Eye, Clock, Download, Maximize2, Type, ImagePlus, Hammer, Heart, LayoutGrid, Search } from 'lucide-react';
 import FeedbackModal from './FeedbackModal';
 import ImagePreviewModal from './ImagePreviewModal';
 import GuidedTour from './GuidedTour';
 import IceChatWidget from './IceChatWidget';
 import ShowcaseGallery from './ShowcaseGallery';
+import TemplateGalleryModal from './TemplateGalleryModal';
 import './ShowcaseGallery.css';
 import AspectRatioSelector from './AspectRatioSelector';
 import ResolutionSelector from './ResolutionSelector';
 import { API_BASE_URL } from '../config';
 import userImage from '../assets/static/user.png';
 import sidebarImages from '../assets/sidebar_images.json';
+import allTemplates from '../assets/images2.json';
 
 const INITIAL_PANEL = {
     selectedSculpture: null,   // { name, image, type } or null
@@ -74,6 +76,7 @@ const ChatInterface = () => {
     const [resolution, setResolution] = useState('2K');
     const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
     const [previewModalOpen, setPreviewModalOpen] = useState(false);
+    const [galleryOpen, setGalleryOpen] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
     const [currentIceCube, setCurrentIceCube] = useState(null);
 
@@ -91,6 +94,12 @@ const ChatInterface = () => {
     const [standardTextOption, setStandardTextOption] = useState(null); // 'names' | 'images' | 'both' | 'none'
     const [standardText, setStandardText] = useState('');
     const [theme, setTheme] = useState(() => localStorage.getItem('cynx_theme') || 'light');
+
+    const [wizardGalleryOpen, setWizardGalleryOpen] = useState(false);
+    const [wizardGallerySearch, setWizardGallerySearch] = useState('');
+    const [wizardGalleryPage, setWizardGalleryPage] = useState(1);
+    const [wizardGalleryCategory, setWizardGalleryCategory] = useState('All');
+    const [sculptureSelectedFrom, setSculptureSelectedFrom] = useState(null); // 'main' | 'gallery'
 
     const [buildMode, setBuildMode] = useState(''); // 'text-to-image', 'image-to-image', 'custom-build'
     const [textPrompt, setTextPrompt] = useState('');
@@ -653,6 +662,7 @@ const ChatInterface = () => {
 
     const handlePanelGenerate = async () => {
         setWizardOpen(false);
+        setWizardGalleryOpen(false);
         const filesToSend = [];
         const prompts = {};
         let idx = 0;
@@ -995,6 +1005,10 @@ const ChatInterface = () => {
                     <button className="header-tour-btn" onClick={handleStartTour}>
                         <Eye size={16} />
                         <span>Quick Tour</span>
+                    </button>
+                    <button className="header-gallery-btn" onClick={() => setGalleryOpen(true)}>
+                        <LayoutGrid size={16} />
+                        <span>Templates</span>
                     </button>
                     <button className="wizard-open-btn" onClick={() => { setBuildMode(''); setWizardOpen(true); setWizardStep(0); }}>
                         <Layers size={18} />
@@ -1592,12 +1606,32 @@ const ChatInterface = () => {
                                     {/* All other categories: show sculpture gallery */}
                                     {sculptureCategory && sculptureCategory !== 'Standard Showpiece' && categoryItems.sculpturesByCategory[sculptureCategory] && (
                                         <>
+                                            {/* Tracker above main grid — only when selected from main grid */}
+                                            {panel.selectedSculpture && sculptureSelectedFrom === 'main' && (
+                                                <div className="wiz-selected-tracker wiz-selected-tracker--top">
+                                                    <div className="wiz-selected-tracker-left">
+                                                        <div className="wiz-selected-check"><Check size={11}/></div>
+                                                        <div className="wiz-selected-info">
+                                                            <span className="wiz-selected-label">Selected Template</span>
+                                                            <span className="wiz-selected-name">{panel.selectedSculpture.name}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="wiz-selected-tracker-right">
+                                                        {panel.selectedSculpture.image && (
+                                                            <img className="wiz-selected-thumb" src={panel.selectedSculpture.image} alt={panel.selectedSculpture.name} />
+                                                        )}
+                                                        <button className="wiz-selected-clear" title="Unselect" onClick={() => { updatePanel('selectedSculpture', null); setSculptureSelectedFrom(null); }}>
+                                                            <X size={13}/>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="rp-picker-grid">
                                                 {categoryItems.sculpturesByCategory[sculptureCategory].map((item, i) => (
                                                     <div
                                                         key={i}
                                                         className={`rp-picker-item ${panel.selectedSculpture?.name === item.name ? 'selected' : ''}`}
-                                                        onClick={() => selectSculpture(item)}
+                                                        onClick={() => { if (panel.selectedSculpture?.name === item.name) { updatePanel('selectedSculpture', null); setSculptureSelectedFrom(null); } else { selectSculpture(item); setSculptureSelectedFrom('main'); } }}
                                                     >
                                                         <img src={item.image} alt={item.name} />
                                                         <span className="rp-picker-label">{item.name}</span>
@@ -1629,6 +1663,123 @@ const ChatInterface = () => {
 
                                             {sculptureCategory !== 'Ice Cubes' && (
                                                 <>
+                                                    {/* Selected template tracker — only when selected from gallery panel */}
+                                                    {panel.selectedSculpture && sculptureSelectedFrom === 'gallery' && (
+                                                        <div className="wiz-selected-tracker">
+                                                            <div className="wiz-selected-tracker-left">
+                                                                <div className="wiz-selected-check"><Check size={11}/></div>
+                                                                <div className="wiz-selected-info">
+                                                                    <span className="wiz-selected-label">Selected Template</span>
+                                                                    <span className="wiz-selected-name">{panel.selectedSculpture.name}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="wiz-selected-tracker-right">
+                                                                {panel.selectedSculpture.image && (
+                                                                    <img className="wiz-selected-thumb" src={panel.selectedSculpture.image} alt={panel.selectedSculpture.name} />
+                                                                )}
+                                                                <button className="wiz-selected-clear" title="Unselect" onClick={() => { updatePanel('selectedSculpture', null); setSculptureSelectedFrom(null); }}>
+                                                                    <X size={13}/>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* View All Templates inline panel */}
+                                                    {!wizardGalleryOpen ? (
+                                                        <button
+                                                            className="wiz-view-all-btn"
+                                                            onClick={() => { setWizardGalleryOpen(true); setWizardGallerySearch(''); setWizardGalleryPage(1); setWizardGalleryCategory('All'); }}
+                                                        >
+                                                            <LayoutGrid size={15} />
+                                                            View All Templates
+                                                            <span className="wiz-view-all-count">{(allTemplates?.standardSculptures || []).length.toLocaleString()}+</span>
+                                                        </button>
+                                                    ) : (
+                                                        <div className="wiz-gallery-panel">
+                                                            <div className="wiz-gallery-header">
+                                                                <div className="wiz-gallery-title">
+                                                                    <LayoutGrid size={15} />
+                                                                    <span>All Templates</span>
+                                                                </div>
+                                                                <button className="wiz-gallery-close" onClick={() => setWizardGalleryOpen(false)}>
+                                                                    <X size={16} />
+                                                                    <span>Close</span>
+                                                                </button>
+                                                            </div>
+                                                            <div className="wiz-gallery-search">
+                                                                <Search size={14} />
+                                                                <input
+                                                                    autoFocus
+                                                                    placeholder="Search all templates..."
+                                                                    value={wizardGallerySearch}
+                                                                    onChange={e => { setWizardGallerySearch(e.target.value); setWizardGalleryPage(1); }}
+                                                                />
+                                                                {wizardGallerySearch && (
+                                                                    <button className="wiz-gallery-clear" onClick={() => { setWizardGallerySearch(''); setWizardGalleryPage(1); }}><X size={12}/></button>
+                                                                )}
+                                                            </div>
+                                                            {(() => {
+                                                                const WIZ_PAGE_SIZE = 18;
+                                                                const WIZ_CATS = ['All', 'Luges', 'Seafood & Displays', 'Showpieces', 'Bars', 'Wedding', 'Other'];
+                                                                const getCat = (name) => {
+                                                                    const n = name.toLowerCase();
+                                                                    if (/\bluge\b/.test(n)) return 'Luges';
+                                                                    if (/\b(seafood|caviar|clam)\b/.test(n) || /\bdisplay\b/.test(n)) return 'Seafood & Displays';
+                                                                    if (/\bshowpiece\b/.test(n)) return 'Showpieces';
+                                                                    if (/\bbar\b/.test(n)) return 'Bars';
+                                                                    if (/mr & mrs|wedding|bride/.test(n)) return 'Wedding';
+                                                                    return 'Other';
+                                                                };
+                                                                const allItems = (allTemplates?.standardSculptures || []).map(i => ({ ...i, cat: getCat(i.name) }));
+                                                                const catCounts = WIZ_CATS.reduce((acc, c) => { acc[c] = c === 'All' ? allItems.length : allItems.filter(i => i.cat === c).length; return acc; }, {});
+                                                                let filtered = wizardGalleryCategory !== 'All' ? allItems.filter(i => i.cat === wizardGalleryCategory) : allItems;
+                                                                if (wizardGallerySearch.trim()) filtered = filtered.filter(i => i.name.toLowerCase().includes(wizardGallerySearch.toLowerCase()));
+                                                                const totalPages = Math.ceil(filtered.length / WIZ_PAGE_SIZE);
+                                                                const paged = filtered.slice((wizardGalleryPage - 1) * WIZ_PAGE_SIZE, wizardGalleryPage * WIZ_PAGE_SIZE);
+                                                                return (
+                                                                    <>
+                                                                        <div className="wiz-gallery-cats">
+                                                                            {WIZ_CATS.map(cat => (
+                                                                                <button
+                                                                                    key={cat}
+                                                                                    className={`wiz-gallery-cat-btn ${wizardGalleryCategory === cat ? 'active' : ''}`}
+                                                                                    onClick={() => { setWizardGalleryCategory(cat); setWizardGalleryPage(1); }}
+                                                                                >
+                                                                                    {cat} <span className="wiz-gallery-cat-count">{catCounts[cat]}</span>
+                                                                                </button>
+                                                                            ))}
+                                                                        </div>
+                                                                        <div className="wiz-gallery-meta">{filtered.length.toLocaleString()} templates{wizardGallerySearch && ' found'}</div>
+                                                                        <div className="wiz-gallery-grid">
+                                                                            {paged.length === 0 ? (
+                                                                                <div className="wiz-gallery-empty">No templates found</div>
+                                                                            ) : paged.map((item, i) => (
+                                                                                <div
+                                                                                    key={i}
+                                                                                    className={`wiz-gallery-item ${panel.selectedSculpture?.image === item.link ? 'selected' : ''}`}
+                                                                                    onClick={() => { selectSculpture({ name: item.name, image: item.link, type: sculptureCategory }); setSculptureSelectedFrom('gallery'); }}
+                                                                                >
+                                                                                    <div className="wiz-gallery-img-wrap">
+                                                                                        <img src={item.link} alt={item.name} loading="lazy" onError={e => { e.target.parentNode.parentNode.style.display='none'; }} />
+                                                                                        {panel.selectedSculpture?.image === item.link && <div className="wiz-gallery-check"><Check size={12}/></div>}
+                                                                                    </div>
+                                                                                    <span className="wiz-gallery-name">{item.name}</span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                        {totalPages > 1 && (
+                                                                            <div className="wiz-gallery-pagination">
+                                                                                <button disabled={wizardGalleryPage === 1} onClick={() => setWizardGalleryPage(p => p - 1)}><ChevronLeft size={14}/></button>
+                                                                                <span>{wizardGalleryPage} / {totalPages}</span>
+                                                                                <button disabled={wizardGalleryPage === totalPages} onClick={() => setWizardGalleryPage(p => p + 1)}><ChevronRight size={14}/></button>
+                                                                            </div>
+                                                                        )}
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    )}
+
                                                     <div className="rp-or-divider"><span>or</span></div>
                                                     <div className="rp-upload-zone" onClick={() => customSculptureInputRef.current?.click()}>
                                                         {panel.customSculptureFile ? (
@@ -2179,6 +2330,11 @@ const ChatInterface = () => {
                     </div>
                 </div>
             )}
+
+            <TemplateGalleryModal
+                isOpen={galleryOpen}
+                onClose={() => setGalleryOpen(false)}
+            />
 
             <FeedbackModal
                 isOpen={feedbackModalOpen}
