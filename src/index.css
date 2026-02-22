@@ -1670,6 +1670,19 @@ body {
     font-size: 1.1rem;
   }
 
+  /* Hide secondary header buttons on mobile */
+  .header-sec-btn { display: none !important; }
+
+  /* Build Sculpture: icon-only */
+  .wizard-open-btn span { display: none; }
+  .wizard-open-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 8px;
+    justify-content: center;
+  }
+
   #chat-messages {
     padding: 1rem;
     max-width: 100%;
@@ -1821,25 +1834,6 @@ body {
     gap: 0.3rem;
   }
 
-  .header-tour-btn {
-    padding: 0.35rem;
-    border-radius: 8px;
-  }
-  .header-tour-btn span { display: none; }
-
-  .wizard-open-btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.78rem;
-    gap: 0.3rem;
-  }
-  .wizard-open-btn span { display: none; }
-  .wizard-open-btn {
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    justify-content: center;
-    border-radius: 10px;
-  }
 
   .history-toggle-btn {
     width: 32px;
@@ -2470,6 +2464,70 @@ body {
 .wizard-open-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
+}
+
+/* ── Mobile toggle button ── */
+.mobile-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.18s;
+  flex-shrink: 0;
+}
+.mobile-more-btn:hover,
+.mobile-more-btn.active {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.4);
+  color: #2563eb;
+}
+
+/* Hidden on desktop */
+@media (min-width: 769px) {
+  .mobile-more-btn { display: none; }
+}
+
+/* ── Mobile secondary row ── */
+.mobile-more-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 1rem;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+}
+.mobile-more-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.mobile-more-item:hover {
+  background: rgba(37, 99, 235, 0.07);
+  color: var(--text-primary);
+  border-color: rgba(37, 99, 235, 0.3);
+}
+.mobile-more-item.active {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.35);
 }
 
 /* ============================================

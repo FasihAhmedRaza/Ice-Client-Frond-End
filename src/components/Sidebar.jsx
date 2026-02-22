@@ -36,9 +36,9 @@ const Sidebar = ({ onSelectTemplate, isOpen, toggleSidebar, selectedTemplate }) 
             let mainCategory = "Other";
             let subCategory = null;
 
-            if (["Ludges", "Sculptures", "Mini Showpieces", "3d", "Ice Bars", "Ice Cubes"].includes(item.category)) {
+            if (["Luges", "Sculptures", "Mini Showpieces", "3d", "Ice Bars", "Ice Cubes"].includes(item.category)) {
                 mainCategory = "Sculpture Type";
-                if (item.category === "Ludges") subCategory = "Luges";
+                if (item.category === "Luges") subCategory = "Luges";
                 else if (item.category === "Sculptures") subCategory = "Showpiece";
                 else subCategory = item.category;
             } else if (item.category === "Bases") {

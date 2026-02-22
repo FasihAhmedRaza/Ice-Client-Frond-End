@@ -88,7 +88,9 @@ const ChatInterface = () => {
     const [wantTopper, setWantTopper] = useState(false);
     const [wantLogo, setWantLogo] = useState(false);
     const [lugeLogoOption, setLugeLogoOption] = useState(null); // 'top' | 'addon' | 'both'
-    const [tubeLugeOption, setTubeLugeOption] = useState(null); // 'inclusion' | 'etched' | 'paper' | 'shape'
+    const [lugeFinish, setLugeFinish] = useState(null); // 'snowfilled' | 'color' | 'paper' | 'paper-snowfilled'
+    const [wantFrontPiece, setWantFrontPiece] = useState(false);
+    const [lugeFrontPieceDesc, setLugeFrontPieceDesc] = useState('');
     const [threeDLogoStyle, setThreeDLogoStyle] = useState(null); // 'paper' | 'snowfilled'
     const [standardLogoShape, setStandardLogoShape] = useState(null); // 'round' | 'square' | 'shape' | 'none'
     const [standardTextOption, setStandardTextOption] = useState(null); // 'names' | 'images' | 'both' | 'none'
@@ -119,6 +121,7 @@ const ChatInterface = () => {
 
     const [historyOpen, setHistoryOpen] = useState(true);
     const [showcaseOpen, setShowcaseOpen] = useState(false);
+    const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
     const [generatedHistory, setGeneratedHistory] = useState(() => {
         try {
             return JSON.parse(localStorage.getItem('cynx_image_history') || '[]');
@@ -164,7 +167,7 @@ const ChatInterface = () => {
 
     // Build category item lists from sidebarImages JSON
     const sculptureCategoryMap = [
-        { label: 'Luge',               key: 'Ludges' },
+        { label: 'Luges',              key: 'Luges' },
         { label: '3D Showpiece',        key: '3D Showpiece' },
         { label: 'Standard Showpiece',  key: 'Standard Showpiece' },
         { label: 'Seafood Display',     key: 'Seafood Display' },
@@ -174,15 +177,15 @@ const ChatInterface = () => {
     const SEAFOOD_KEYWORDS = ['crab', 'lobster', 'shrimp', 'mahi', 'dolphin', 'whale', 'shark', 'penguin', 'fish', 'octopus', 'clam', 'oyster', 'seafood', 'salmon'];
     const categoryItems = useMemo(() => {
         const sculpturesByCategory = {
-            'Ludges': [], '3D Showpiece': [], 'Standard Showpiece': [],
+            'Luges': [], '3D Showpiece': [], 'Standard Showpiece': [],
             'Seafood Display': [], 'Ice Bars': [], 'Ice Cubes': [],
         };
         const bases = [];
         const toppers = [];
         sidebarImages.forEach(item => {
             const entry = { type: item.label, name: item.label, image: item.url, category: item.category };
-            if (item.category === 'Ludges') {
-                sculpturesByCategory['Ludges'].push(entry);
+            if (item.category === 'Luges') {
+                sculpturesByCategory['Luges'].push(entry);
             } else if (item.category === 'Ice Bars') {
                 sculpturesByCategory['Ice Bars'].push(entry);
             } else if (item.category === 'Ice Cubes') {
@@ -486,43 +489,43 @@ const ChatInterface = () => {
         recognition.start();
     };
 
-    const handleCreateVideo = async (imageUrl) => {
-        try {
-            setIsLoading(true);
+    // const handleCreateVideo = async (imageUrl) => {
+    //     try {
+    //         setIsLoading(true);
 
-            const response = await api.post(`${API_BASE_URL}/api/create_video`, {
-                image_url: imageUrl
-            });
+    //         const response = await api.post(`${API_BASE_URL}/api/create_video`, {
+    //             image_url: imageUrl
+    //         });
 
-            console.log("Video generation started:", response.data);
+    //         console.log("Video generation started:", response.data);
 
-            if (response.data.data && response.data.data.task_id) {
-                const taskId = response.data.data.task_id;
-                setMessages(prev => [...prev, {
-                    role: 'assistant',
-                    taskId: taskId,
-                    isLoadingVideo: true,
-                    content: `🎥 Video generation started! Please wait while we generate your video...`
-                }]);
-                setActiveTaskIds(prev => [...prev, taskId]);
-            } else {
-                setMessages(prev => [...prev, {
-                    role: 'assistant',
-                    content: "Video generation request sent successfully, but no Task ID was returned."
-                }]);
-            }
+    //         if (response.data.data && response.data.data.task_id) {
+    //             const taskId = response.data.data.task_id;
+    //             setMessages(prev => [...prev, {
+    //                 role: 'assistant',
+    //                 taskId: taskId,
+    //                 isLoadingVideo: true,
+    //                 content: `🎥 Video generation started! Please wait while we generate your video...`
+    //             }]);
+    //             setActiveTaskIds(prev => [...prev, taskId]);
+    //         } else {
+    //             setMessages(prev => [...prev, {
+    //                 role: 'assistant',
+    //                 content: "Video generation request sent successfully, but no Task ID was returned."
+    //             }]);
+    //         }
 
-        } catch (error) {
-            console.error("Error creating video:", error);
-            const errorMessage = error.response?.data?.error || "Failed to start video generation.";
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: `❌ Error creating video: ${errorMessage}`
-            }]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    //     } catch (error) {
+    //         console.error("Error creating video:", error);
+    //         const errorMessage = error.response?.data?.error || "Failed to start video generation.";
+    //         setMessages(prev => [...prev, {
+    //             role: 'assistant',
+    //             content: `❌ Error creating video: ${errorMessage}`
+    //         }]);
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
 
     /* --- Right panel helpers --- */
     const updatePanel = (field, value) => {
@@ -581,10 +584,11 @@ const ChatInterface = () => {
 
     // Detect which luge sub-type is selected (if any)
     const selectedLugeType = useMemo(() => {
-        if (sculptureCategory !== 'Ludges') return null;
+        if (sculptureCategory !== 'Luges') return null;
         const name = (panel.selectedSculpture?.name || '').toLowerCase();
         if (name.includes('double') || name.includes('martini')) return 'double-martini';
         if (name.includes('tube')) return 'tube';
+        if (name.includes('mini')) return 'mini';
         return null;
     }, [sculptureCategory, panel.selectedSculpture]);
 
@@ -624,23 +628,27 @@ const ChatInterface = () => {
             parts.push(`Logo: uploaded file (${panel.logoFile.name}) — embed this EXACT logo into the ice cube using "${effectType}" effect`);
         }
 
-        // Double / Martini luge: logo placement
-        if (selectedLugeType === 'double-martini' && lugeLogoOption) {
+        // All luge types: logo placement
+        if (selectedLugeType && lugeLogoOption) {
             const posLabel = { top: 'top surface only', addon: 'side/front (add-on) only', both: 'top surface AND side/front (add-on)' }[lugeLogoOption];
             parts.push(`Logo placement: ${posLabel}`);
             if (panel.logoFile) parts.push(`Logo file: ${panel.logoFile.name}`);
         }
 
-        // Tube luge: style option
-        if (selectedLugeType === 'tube' && tubeLugeOption) {
-            const tubeLabel = {
-                inclusion: 'inclusion — freeze the uploaded item inside the ice',
-                etched:    'etched / carved logo inside the ice (snofilled effect)',
-                paper:     'paper logo frozen inside the ice',
-                shape:     'AI shape — recreate the tube luge in the shape of the uploaded reference image',
-            }[tubeLugeOption];
-            parts.push(`Tube luge style: ${tubeLabel}`);
-            if (panel.logoFile) parts.push(`Reference file: ${panel.logoFile.name}`);
+        // All luge types: ice finish
+        if (selectedLugeType && lugeFinish) {
+            const finishLabel = {
+                'snowfilled':       'Snowfilled (frosted white interior)',
+                'color':            'Color (tinted colored ice)',
+                'paper':            'Paper (printed paper label on ice)',
+                'paper-snowfilled': 'Paper + Snowfilled (paper label combined with snofilled effect)',
+            }[lugeFinish];
+            parts.push(`Ice finish: ${finishLabel}`);
+        }
+
+        // All luge types: front decorative piece
+        if (selectedLugeType && wantFrontPiece) {
+            parts.push(`Front decorative piece: ${lugeFrontPieceDesc || 'yes (no description provided)'}`);
         }
 
         // Standard base/topper/logo (non-special categories)
@@ -748,20 +756,16 @@ const ChatInterface = () => {
             prompts[idx] = `CLIENT LOGO — Place this logo as a printed paper card element on the showpiece. The card must have a solid white or colored ${shapePrompt} background. It should look like a real printed paper label or sign physically attached to the ice surface — fully colored and clearly readable. Do NOT change the sculpture shape.`;
             idx++;
         }
-        // Logo — Double / Martini luge
-        if (panel.logoFile && selectedLugeType === 'double-martini' && lugeLogoOption) {
+        // Logo — all luge types
+        if (panel.logoFile && selectedLugeType && lugeLogoOption) {
             filesToSend.push(panel.logoFile);
             const pos = { top: 'the top flat surface', addon: 'the front face (side add-on position)', both: 'BOTH the top flat surface AND the front face' }[lugeLogoOption];
-            prompts[idx] = `CLIENT LOGO — This is the ONLY logo/branding to use. Place this logo as a PRINTED PAPER CARD element on ${pos} of the ice luge. The logo MUST have a solid white or colored rectangular background card behind all the text and graphics — exactly like a printed paper sign or vinyl label physically attached to the ice. It should be fully colored, sharp, and clearly readable. Do NOT engrave or etch it. Do NOT remove the background. Do NOT invent other logos. Do NOT modify the luge shape in any way.`;
-            idx++;
-        }
-        // Tube luge file (logo / inclusion item / shape reference)
-        if (panel.logoFile && selectedLugeType === 'tube' && tubeLugeOption) {
-            filesToSend.push(panel.logoFile);
-            if (tubeLugeOption === 'etched')    prompts[idx] = 'CLIENT LOGO — Etch and carve this exact logo into the tube luge ice surface with a snofilled/frosted carved effect. It should appear carved INTO the ice with visible depth. Reproduce all fonts, graphics, and layout precisely. Do NOT invent or add any other text or logos. Do NOT change the tube luge shape.';
-            if (tubeLugeOption === 'paper')     prompts[idx] = 'CLIENT LOGO — Place this logo as a PRINTED PAPER CARD element on the front face of the tube luge. The logo MUST have a solid white rectangular background card behind it — like a real printed label physically attached to the ice. Fully colored, clearly readable, background intact. Do NOT remove the background. Do NOT change the tube luge shape.';
-            if (tubeLugeOption === 'inclusion') prompts[idx] = 'INCLUSION ITEM — Freeze this exact item inside the tube luge ice as a realistic ice inclusion. It should be clearly visible through the clear transparent ice, perfectly preserved in its original form. Do NOT change the tube luge shape.';
-            if (tubeLugeOption === 'shape')     prompts[idx] = 'SHAPE REFERENCE — Redesign the tube luge so its overall external shape and silhouette closely matches this reference object. The result must still be rendered as a clear photorealistic ice tube luge.';
+            const finishNote = lugeFinish === 'snowfilled' || lugeFinish === 'paper-snowfilled'
+                ? ' Apply a snofilled/frosted effect to the engraved logo area.'
+                : lugeFinish === 'paper' || lugeFinish === 'paper-snowfilled'
+                ? ' The logo must appear as a PRINTED PAPER CARD with a solid white or colored background — like a real printed label physically attached to the ice.'
+                : '';
+            prompts[idx] = `CLIENT LOGO — This is the ONLY logo/branding to use. Place this logo on ${pos} of the ice luge.${finishNote} It should be fully colored, sharp, and clearly readable. Do NOT invent other logos. Do NOT modify the luge shape in any way.`;
             idx++;
         }
         // Logo — standard Ice Bar / Luge (no special sub-type) fallback
@@ -992,21 +996,21 @@ const ChatInterface = () => {
                 </div>
                 <div className="header-right">
                     <button
-                        className={`header-history-toggle ${historyOpen ? 'active' : ''}`}
+                        className={`header-history-toggle header-sec-btn ${historyOpen ? 'active' : ''}`}
                         onClick={() => setHistoryOpen(p => !p)}
                         title={historyOpen ? 'Hide Generated Images' : 'Show Generated Images'}
                     >
                         <ImageIcon size={16} />
                         <span>My Images</span>
                     </button>
-                    <button className="theme-toggle-btn" onClick={toggleTheme} title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'} aria-label="Toggle theme">
+                    <button className="theme-toggle-btn header-sec-btn" onClick={toggleTheme} title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'} aria-label="Toggle theme">
                         {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
                     </button>
-                    <button className="header-tour-btn" onClick={handleStartTour}>
+                    <button className="header-tour-btn header-sec-btn" onClick={handleStartTour}>
                         <Eye size={16} />
                         <span>Quick Tour</span>
                     </button>
-                    <button className="header-gallery-btn" onClick={() => setGalleryOpen(true)}>
+                    <button className="header-gallery-btn header-sec-btn" onClick={() => setGalleryOpen(true)}>
                         <LayoutGrid size={16} />
                         <span>Templates</span>
                     </button>
@@ -1014,8 +1018,35 @@ const ChatInterface = () => {
                         <Layers size={18} />
                         <span>Build Sculpture</span>
                     </button>
+                    <button
+                        className={`mobile-more-btn ${mobileMoreOpen ? 'active' : ''}`}
+                        onClick={() => setMobileMoreOpen(p => !p)}
+                        aria-label="More"
+                    >
+                        <Menu size={18} />
+                    </button>
                 </div>
             </div>
+            {mobileMoreOpen && (
+                <div className="mobile-more-row">
+                    <button
+                        className={`mobile-more-item ${historyOpen ? 'active' : ''}`}
+                        onClick={() => { setHistoryOpen(p => !p); setMobileMoreOpen(false); }}
+                    >
+                        <ImageIcon size={15} /><span>My Images</span>
+                    </button>
+                    <button className="mobile-more-item" onClick={() => { setGalleryOpen(true); setMobileMoreOpen(false); }}>
+                        <LayoutGrid size={15} /><span>Templates</span>
+                    </button>
+                    <button className="mobile-more-item" onClick={() => { handleStartTour(); setMobileMoreOpen(false); }}>
+                        <Eye size={15} /><span>Quick Tour</span>
+                    </button>
+                    <button className="mobile-more-item" onClick={() => { toggleTheme(); setMobileMoreOpen(false); }}>
+                        {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+                        <span>{theme === 'light' ? 'Dark' : 'Light'}</span>
+                    </button>
+                </div>
+            )}
 
             <div className="chat-main">
 
@@ -1179,9 +1210,9 @@ const ChatInterface = () => {
                                         <button className="action-btn" onClick={() => handleSelectImage(msg.image)}>
                                             <Edit2 size={14} /> <span>Select</span>
                                         </button>
-                                        <button className="action-btn" onClick={() => handleCreateVideo(msg.image)}>
+                                        {/* <button className="action-btn" onClick={() => handleCreateVideo(msg.image)}>
                                             <Video size={14} /> <span>Create Video</span>
-                                        </button>
+                                        </button> */}
                                         <button className="action-btn" onClick={() => openPreview(msg.image)}>
                                             <Wand2 size={14} /> <span>Expand/Edit</span>
                                         </button>
@@ -1941,96 +1972,95 @@ const ChatInterface = () => {
                                         </div>
                                     </div>
 
-                                ) : /* ══ LUGE OPTIONS ══ */
-                                selectedLugeType === 'double-martini' ? (
-                                    <div className="wizard-step-content">
-                                        <p className="wizard-hint">Choose where you'd like to add your logo on the luge.</p>
-                                        <div className="luge-option-cards">
-                                            {[
-                                                { key: 'top',   label: 'Top Logo Only',    desc: 'Logo engraved on the top surface of the luge' },
-                                                { key: 'addon', label: 'Add-on Logo Only',  desc: 'Logo placed on the side / front face of the luge' },
-                                                { key: 'both',  label: 'Both',              desc: 'Top logo + add-on logo on the same luge' },
-                                            ].map(({ key, label, desc }) => (
-                                                <button
-                                                    key={key}
-                                                    className={`luge-option-card ${lugeLogoOption === key ? 'active' : ''}`}
-                                                    onClick={() => { setLugeLogoOption(key); updatePanel('logoFile', null); }}
-                                                >
-                                                    <span className="luge-option-label">{label}</span>
-                                                    <span className="luge-option-desc">{desc}</span>
-                                                    {lugeLogoOption === key && <div className="rp-picker-check" style={{position:'absolute',top:'0.5rem',right:'0.5rem'}}><Check size={14}/></div>}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        {lugeLogoOption && (
-                                            <div className="extras-section" style={{ marginTop: '1.25rem' }}>
-                                                <h3 className="extras-section-title">Upload your logo</h3>
-                                                <div className="rp-upload-zone" onClick={() => logoInputRef.current?.click()}>
-                                                    {panel.logoFile ? (
-                                                        <div className="rp-file-preview">
-                                                            <img src={URL.createObjectURL(panel.logoFile)} alt="logo" className="rp-thumb" />
-                                                            <span className="rp-file-name">{panel.logoFile.name}</span>
-                                                            <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('logoFile', null); }}><Trash2 size={14}/></button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="rp-upload-placeholder">
-                                                            <Upload size={18} /><span>Upload logo</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <input type="file" ref={logoInputRef} accept="image/*" onChange={handlePanelLogoChange} style={{ display: 'none' }} />
-                                            </div>
-                                        )}
-                                    </div>
+                                ) : /* ══ LUGE OPTIONS (all types) ══ */
+                                selectedLugeType ? (
+                                    <div className="wizard-step-content wizard-extras-combined">
+                                        <p className="wizard-hint">Customise your {panel.selectedSculpture?.name || 'luge'} below.</p>
 
-                                ) : selectedLugeType === 'tube' ? (
-                                /* ══ TUBE LUGE OPTIONS ══ */
-                                    <div className="wizard-step-content">
-                                        <p className="wizard-hint">Choose the style for your tube luge.</p>
-                                        <div className="luge-option-cards">
-                                            {[
-                                                { key: 'inclusion', label: 'Inclusion',     desc: 'Upload an item to freeze inside the ice' },
-                                                { key: 'etched',    label: 'Etched',         desc: 'Logo carved / engraved into the ice' },
-                                                { key: 'paper',     label: 'Paper Logo',     desc: 'Printed paper effect frozen inside the ice' },
-                                                { key: 'shape',     label: 'AI Shape',       desc: 'Upload a reference — AI recreates the tube luge as that shape' },
-                                            ].map(({ key, label, desc }) => (
-                                                <button
-                                                    key={key}
-                                                    className={`luge-option-card ${tubeLugeOption === key ? 'active' : ''}`}
-                                                    onClick={() => { setTubeLugeOption(key); updatePanel('logoFile', null); }}
-                                                >
-                                                    <span className="luge-option-label">{label}</span>
-                                                    <span className="luge-option-desc">{desc}</span>
-                                                    {tubeLugeOption === key && <div className="rp-picker-check" style={{position:'absolute',top:'0.5rem',right:'0.5rem'}}><Check size={14}/></div>}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        {tubeLugeOption && (
-                                            <div className="extras-section" style={{ marginTop: '1.25rem' }}>
-                                                <h3 className="extras-section-title">
-                                                    {tubeLugeOption === 'inclusion' ? 'Upload the item to freeze inside'
-                                                     : tubeLugeOption === 'shape'   ? 'Upload shape reference image'
-                                                     : 'Upload your logo'}
-                                                </h3>
-                                                {tubeLugeOption === 'inclusion' && <p className="rp-hint">Upload an image of the item you want frozen inside the ice.</p>}
-                                                {tubeLugeOption === 'shape' && <p className="rp-hint">Upload a reference image of the item — the AI will model the tube luge as that shape.</p>}
-                                                <div className="rp-upload-zone" onClick={() => logoInputRef.current?.click()}>
-                                                    {panel.logoFile ? (
-                                                        <div className="rp-file-preview">
-                                                            <img src={URL.createObjectURL(panel.logoFile)} alt="upload" className="rp-thumb" />
-                                                            <span className="rp-file-name">{panel.logoFile.name}</span>
-                                                            <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('logoFile', null); }}><Trash2 size={14}/></button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="rp-upload-placeholder">
-                                                            <Upload size={18} />
-                                                            <span>{tubeLugeOption === 'shape' ? 'Upload reference image' : tubeLugeOption === 'inclusion' ? 'Upload item image' : 'Upload logo'}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <input type="file" ref={logoInputRef} accept="image/*" onChange={handlePanelLogoChange} style={{ display: 'none' }} />
+                                        {/* ── LOGO PLACEMENT ── */}
+                                        <div className="extras-section">
+                                            <h3 className="extras-section-title">Logo</h3>
+                                            <div className="luge-option-cards">
+                                                {[
+                                                    { key: 'top',   label: 'Top Logo Only',   desc: 'Logo on the top surface of the luge' },
+                                                    { key: 'addon', label: 'Add-on Logo Only', desc: 'Logo on the side / front face of the luge' },
+                                                    { key: 'both',  label: 'Both',             desc: 'Top logo + add-on logo' },
+                                                ].map(({ key, label, desc }) => (
+                                                    <button
+                                                        key={key}
+                                                        className={`luge-option-card ${lugeLogoOption === key ? 'active' : ''}`}
+                                                        onClick={() => { setLugeLogoOption(key); updatePanel('logoFile', null); }}
+                                                    >
+                                                        <span className="luge-option-label">{label}</span>
+                                                        <span className="luge-option-desc">{desc}</span>
+                                                        {lugeLogoOption === key && <div className="rp-picker-check" style={{position:'absolute',top:'0.5rem',right:'0.5rem'}}><Check size={14}/></div>}
+                                                    </button>
+                                                ))}
                                             </div>
-                                        )}
+                                            {lugeLogoOption && (
+                                                <div style={{ marginTop: '0.75rem' }}>
+                                                    <div className="rp-upload-zone" onClick={() => logoInputRef.current?.click()}>
+                                                        {panel.logoFile ? (
+                                                            <div className="rp-file-preview">
+                                                                <img src={URL.createObjectURL(panel.logoFile)} alt="logo" className="rp-thumb" />
+                                                                <span className="rp-file-name">{panel.logoFile.name}</span>
+                                                                <button className="rp-remove" onClick={(e) => { e.stopPropagation(); updatePanel('logoFile', null); }}><Trash2 size={14}/></button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="rp-upload-placeholder">
+                                                                <Upload size={18} /><span>Upload logo</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <input type="file" ref={logoInputRef} accept="image/*" onChange={handlePanelLogoChange} style={{ display: 'none' }} />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* ── ICE FINISH ── */}
+                                        <div className="extras-section">
+                                            <h3 className="extras-section-title">Ice Finish</h3>
+                                            <div className="luge-option-cards">
+                                                {[
+                                                    { key: 'snowfilled',       label: 'Snowfilled',         desc: 'Frosted white interior — snofilled effect' },
+                                                    { key: 'color',            label: 'Color',              desc: 'Colored ice with a tinted look' },
+                                                    { key: 'paper',            label: 'Paper',              desc: 'Printed paper label applied to the ice' },
+                                                    { key: 'paper-snowfilled', label: 'Paper + Snowfilled', desc: 'Printed paper combined with snofilled effect' },
+                                                ].map(({ key, label, desc }) => (
+                                                    <button
+                                                        key={key}
+                                                        className={`luge-option-card ${lugeFinish === key ? 'active' : ''}`}
+                                                        onClick={() => setLugeFinish(lugeFinish === key ? null : key)}
+                                                    >
+                                                        <span className="luge-option-label">{label}</span>
+                                                        <span className="luge-option-desc">{desc}</span>
+                                                        {lugeFinish === key && <div className="rp-picker-check" style={{position:'absolute',top:'0.5rem',right:'0.5rem'}}><Check size={14}/></div>}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* ── FRONT DECORATIVE PIECE ── */}
+                                        <div className="extras-section">
+                                            <h3 className="extras-section-title">Front Decorative Piece</h3>
+                                            <div className="rp-toggle-row">
+                                                <span>Add a front decorative piece?</span>
+                                                <div className="rp-toggle-btns">
+                                                    <button className={`rp-toggle-btn ${wantFrontPiece ? 'active' : ''}`} onClick={() => setWantFrontPiece(true)}>Yes</button>
+                                                    <button className={`rp-toggle-btn ${!wantFrontPiece ? 'active' : ''}`} onClick={() => { setWantFrontPiece(false); setLugeFrontPieceDesc(''); }}>No</button>
+                                                </div>
+                                            </div>
+                                            {wantFrontPiece && (
+                                                <textarea
+                                                    className="wizard-textarea"
+                                                    placeholder="Describe the front decorative piece (e.g. logo, motif, company name)..."
+                                                    value={lugeFrontPieceDesc}
+                                                    onChange={e => setLugeFrontPieceDesc(e.target.value)}
+                                                    rows={3}
+                                                    style={{ marginTop: '0.75rem' }}
+                                                />
+                                            )}
+                                        </div>
                                     </div>
 
                                 ) : (
@@ -2250,23 +2280,28 @@ const ChatInterface = () => {
                                         )}
 
                                         {/* Luge-specific */}
-                                        {selectedLugeType === 'double-martini' && (
-                                            <div className="review-item">
-                                                <span className="review-label">Logo Placement</span>
-                                                <span className="review-value">
-                                                    {lugeLogoOption === 'top' ? 'Top only' : lugeLogoOption === 'addon' ? 'Add-on only' : lugeLogoOption === 'both' ? 'Top + add-on' : <em>None</em>}
-                                                    {panel.logoFile && ` — ${panel.logoFile.name}`}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {selectedLugeType === 'tube' && (
-                                            <div className="review-item">
-                                                <span className="review-label">Tube Style</span>
-                                                <span className="review-value">
-                                                    {tubeLugeOption === 'inclusion' ? 'Inclusion' : tubeLugeOption === 'etched' ? 'Etched' : tubeLugeOption === 'paper' ? 'Paper logo' : tubeLugeOption === 'shape' ? 'AI shape' : <em>None</em>}
-                                                    {panel.logoFile && ` — ${panel.logoFile.name}`}
-                                                </span>
-                                            </div>
+                                        {selectedLugeType && (
+                                            <>
+                                                <div className="review-item">
+                                                    <span className="review-label">Logo Placement</span>
+                                                    <span className="review-value">
+                                                        {lugeLogoOption === 'top' ? 'Top only' : lugeLogoOption === 'addon' ? 'Add-on only' : lugeLogoOption === 'both' ? 'Top + add-on' : <em>None</em>}
+                                                        {panel.logoFile && ` — ${panel.logoFile.name}`}
+                                                    </span>
+                                                </div>
+                                                <div className="review-item">
+                                                    <span className="review-label">Ice Finish</span>
+                                                    <span className="review-value">
+                                                        {lugeFinish === 'snowfilled' ? 'Snowfilled' : lugeFinish === 'color' ? 'Color' : lugeFinish === 'paper' ? 'Paper' : lugeFinish === 'paper-snowfilled' ? 'Paper + Snowfilled' : <em>None</em>}
+                                                    </span>
+                                                </div>
+                                                <div className="review-item">
+                                                    <span className="review-label">Front Piece</span>
+                                                    <span className="review-value">
+                                                        {wantFrontPiece ? (lugeFrontPieceDesc || 'Yes (no description)') : 'No'}
+                                                    </span>
+                                                </div>
+                                            </>
                                         )}
 
                                         {/* Standard extras (Ice Bar / plain Luge) */}

@@ -36,7 +36,7 @@ const TOUR_STEPS = [
         target: '.wizard-body',
         position: 'right',
         wizardStep: 1,
-        selectCategory: 'Ludges',
+        selectCategory: 'Luges',
     },
     {
         title: 'Step 2 — Extras (Base, Topper & Logo)',

@@ -1,51 +1,27 @@
 [
     {
-        "category": "Ludges",
-        "label": "Ar Double Luge Rough",
-        "url": "https://res.cloudinary.com/daigcmtfz/image/upload/v1766237946/sidebar_images/Ludges/AR%20DOUBLE%20LUGE%20ROUGH.jpg",
-        "original_filename": "AR DOUBLE LUGE ROUGH.jpg"
-    },
-    {
-        "category": "Ludges",
-        "label": "Awg 20 Yrs Double Luge  Render",
-        "url": "https://res.cloudinary.com/daigcmtfz/image/upload/v1766237947/sidebar_images/Ludges/AWG%2020%20YRs%20Double%20Luge%20%20Render.jpg",
-        "original_filename": "AWG 20 YRs Double Luge  Render.jpg"
-    },
-    {
-        "category": "Ludges",
-        "label": "Boombox Double Luge W J Logo  Render",
-        "url": "https://res.cloudinary.com/daigcmtfz/image/upload/v1766237949/sidebar_images/Ludges/BOOMBOX%20Double%20LUGE%20w%20J%20LOGO%20%20Render.jpg",
-        "original_filename": "BOOMBOX Double LUGE w J LOGO  Render.jpg"
-    },
-    {
-        "category": "Ludges",
-        "label": "Haku Vodka Logo On Kanpai Double Luge",
-        "url": "https://res.cloudinary.com/daigcmtfz/image/upload/v1766237950/sidebar_images/Ludges/HAKU%20VODKA%20Logo%20on%20KANPAI%20Double%20Luge.jpg",
-        "original_filename": "HAKU VODKA Logo on KANPAI Double Luge.jpg"
-    },
-    {
-        "category": "Ludges",
-        "label": "Ludge",
+        "category": "Luges",
+        "label": "Double Luge",
         "url": "https://res.cloudinary.com/daigcmtfz/image/upload/v1766237951/sidebar_images/Ludges/ludge.jpg",
         "original_filename": "ludge.png"
     },
     {
-        "category": "Ludges",
-        "label": "Martini",
+        "category": "Luges",
+        "label": "Martini Luge",
         "url": "https://res.cloudinary.com/daigcmtfz/image/upload/v1766237952/sidebar_images/Ludges/martini.jpg",
         "original_filename": "martini.png"
     },
     {
-        "category": "Ludges",
-        "label": "Real Ludge",
-        "url": "https://res.cloudinary.com/daigcmtfz/image/upload/v1766237953/sidebar_images/Ludges/real%20ludge.jpg",
-        "original_filename": "real ludge.png"
-    },
-    {
-        "category": "Ludges",
-        "label": "Tube",
+        "category": "Luges",
+        "label": "Tube Luge",
         "url": "https://res.cloudinary.com/daigcmtfz/image/upload/v1766237955/sidebar_images/Ludges/tube.jpg",
         "original_filename": "tube.png"
+    },
+    {
+        "category": "Luges",
+        "label": "Mini Luge",
+        "url": "https://res.cloudinary.com/daigcmtfz/image/upload/v1766237953/sidebar_images/Ludges/real%20ludge.jpg",
+        "original_filename": "real ludge.png"
     },
     {
         "category": "Topper Logos",
@@ -205,7 +181,7 @@
     },
     {
         "category": "Sculptures",
-        "label": "Double Ludge",
+        "label": "Double Luge",
         "url": "https://res.cloudinary.com/daigcmtfz/image/upload/v1766237972/sidebar_images/Sculptures/double_ludge.png",
         "original_filename": "double_ludge.png"
     },
