@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Search, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import sculptureData from '../assets/images2.json';
+import LazyImage from './LazyImage';
 import './TemplateGalleryModal.css';
 
 const ALL_ITEMS = sculptureData?.standardSculptures || [];
@@ -96,14 +97,13 @@ const TemplateGalleryModal = ({ isOpen, onClose }) => {
                         <div className="tg-grid">
                             {paged.map((item, i) => (
                                 <div key={i} className="tg-item">
-                                    <div className="tg-img-wrap">
-                                        <img
-                                            src={item.link}
-                                            alt={item.name}
-                                            loading="lazy"
-                                            onError={e => { e.target.parentNode.parentNode.style.display = 'none'; }}
-                                        />
-                                    </div>
+                                    <LazyImage
+                                        src={item.link}
+                                        alt={item.name}
+                                        wrapClassName="tg-img-wrap"
+                                        placeholderH="145px"
+                                        style={{ height: '100%', objectFit: 'cover' }}
+                                    />
                                     <div className="tg-item-footer">
                                         <span className="tg-item-name">{item.name}</span>
                                         <span className="tg-item-cat">{item.category}</span>

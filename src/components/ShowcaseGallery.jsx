@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Heart, Download, Sparkles, Loader, Maximize2 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import LazyImage from './LazyImage';
 
 const ShowcaseGallery = ({ isOpen, onClose }) => {
     const [images, setImages] = useState([]);
@@ -155,11 +156,11 @@ const ShowcaseGallery = ({ isOpen, onClose }) => {
                                     className="showcase-card"
                                     onClick={() => setLightboxImg(img)}
                                 >
-                                    <img
+                                    <LazyImage
                                         src={getImageUrl(img)}
                                         alt={getCategory(img)}
                                         draggable={false}
-                                        onError={e => { e.target.src = 'https://placehold.co/400x400?text=Error'; }}
+                                        placeholderH="200px"
                                     />
                                     <div className="showcase-card-overlay">
                                         <div className="showcase-card-actions">

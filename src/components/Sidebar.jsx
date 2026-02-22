@@ -1,26 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, Menu, X, Wand2, PanelLeft } from 'lucide-react';
 import sidebarImages from '../assets/sidebar_images.json';
+import LazyImage from './LazyImage';
 
-const SidebarImage = ({ src, alt }) => {
-    const [loaded, setLoaded] = useState(false);
-
-    return (
-        <>
-            {!loaded && <div className="image-skeleton"></div>}
-            <img
-                src={src}
-                alt={alt}
-                className={`sidebar-image ${!loaded ? 'hidden' : ''}`}
-                onLoad={() => setLoaded(true)}
-                onError={(e) => {
-                    e.target.src = 'https://placehold.co/60x80?text=No+Image';
-                    setLoaded(true);
-                }}
-            />
-        </>
-    );
-};
+const SidebarImage = ({ src, alt }) => (
+    <LazyImage src={src} alt={alt} className="sidebar-image" placeholderH="80px" />
+);
 
 const Sidebar = ({ onSelectTemplate, isOpen, toggleSidebar, selectedTemplate }) => {
     const [activeCategory, setActiveCategory] = useState(null);

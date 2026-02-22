@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import api from '../api';
 import { Send, Mic, Image as ImageIcon, X, ThumbsUp, ThumbsDown, Lightbulb, Wand2, Sun, Moon, Menu, Settings, ChevronDown, ChevronRight, ChevronLeft, Check, Sparkles, Video, Edit2, Upload, Trash2, ArrowRight, ArrowLeft, Layers, Paintbrush, RotateCcw, Gem, Zap, Eye, Clock, Download, Maximize2, Type, ImagePlus, Hammer, Heart, LayoutGrid, Search } from 'lucide-react';
+import LazyImage from './LazyImage';
 import FeedbackModal from './FeedbackModal';
 import ImagePreviewModal from './ImagePreviewModal';
 import GuidedTour from './GuidedTour';
@@ -1039,7 +1040,7 @@ const ChatInterface = () => {
             <div id="chat-header">
                 <div className="header-left">
                     <a href="/">
-                        <img src="/vite.svg" alt="IceButcher" className="header-logo" />
+                        <img src="/react.svg" alt="IceButcher" className="header-logo" />
                     </a>
                 </div>
                 <div className="header-right">
@@ -1127,10 +1128,11 @@ const ChatInterface = () => {
                         generatedHistory.map(item => (
                             <div key={item.id} className="history-card">
                                 <div className="history-card-image">
-                                    <img
+                                    <LazyImage
                                         src={item.image.startsWith('/static') ? `${API_BASE_URL}${item.image}` : item.image}
                                         alt="Generated"
                                         onClick={() => openPreview(item.image)}
+                                        style={{ borderRadius: '8px' }}
                                     />
                                     <div className="history-card-overlay">
                                         <button onClick={() => openPreview(item.image)} title="View">
@@ -1243,12 +1245,12 @@ const ChatInterface = () => {
                             {msg.content && <div className="message-bubble">{msg.content}</div>}
 
                             {msg.images && msg.images.map((img, i) => (
-                                <img key={i} src={img} alt="User upload" className="chat-image" />
+                                <LazyImage key={i} src={img} alt="User upload" className="chat-image" />
                             ))}
 
                             {msg.image && (
                                 <div className="bot-image-container">
-                                    <img
+                                    <LazyImage
                                         src={msg.image.startsWith('/static') ? `${API_BASE_URL}${msg.image}` : msg.image}
                                         alt="Generated"
                                         className="chat-image"
@@ -1674,7 +1676,7 @@ const ChatInterface = () => {
                                                     className={`rp-picker-item ${panel.selectedBase?.name === item.name ? 'selected' : ''}`}
                                                     onClick={() => selectBase(item)}
                                                 >
-                                                    <img src={item.image} alt={item.name} />
+                                                    <LazyImage src={item.image} alt={item.name} placeholderH="80px" />
                                                     <span className="rp-picker-label">{item.name}</span>
                                                     {panel.selectedBase?.name === item.name && <div className="rp-picker-check"><Check size={14}/></div>}
                                                 </div>
@@ -1712,7 +1714,7 @@ const ChatInterface = () => {
                                                         className={`rp-picker-item ${panel.selectedSculpture?.name === item.name ? 'selected' : ''}`}
                                                         onClick={() => { if (panel.selectedSculpture?.name === item.name) { updatePanel('selectedSculpture', null); setSculptureSelectedFrom(null); } else { selectSculpture(item); setSculptureSelectedFrom('main'); } }}
                                                     >
-                                                        <img src={item.image} alt={item.name} />
+                                                        <LazyImage src={item.image} alt={item.name} placeholderH="80px" />
                                                         <span className="rp-picker-label">{item.name}</span>
                                                         {panel.selectedSculpture?.name === item.name && <div className="rp-picker-check"><Check size={14}/></div>}
                                                     </div>
@@ -1839,7 +1841,7 @@ const ChatInterface = () => {
                                                                                     onClick={() => { selectSculpture({ name: item.name, image: item.link, type: sculptureCategory }); setSculptureSelectedFrom('gallery'); }}
                                                                                 >
                                                                                     <div className="wiz-gallery-img-wrap">
-                                                                                        <img src={item.link} alt={item.name} loading="lazy" onError={e => { e.target.parentNode.parentNode.style.display='none'; }} />
+                                                                                        <LazyImage src={item.link} alt={item.name} placeholderH="90px" onError={e => { e.target.parentNode.parentNode.style.display='none'; }} />
                                                                                         {panel.selectedSculpture?.image === item.link && <div className="wiz-gallery-check"><Check size={12}/></div>}
                                                                                     </div>
                                                                                     <span className="wiz-gallery-name">{item.name}</span>
@@ -2043,7 +2045,7 @@ const ChatInterface = () => {
                                                     className={`rp-picker-item ${lugeTopperOption === 'round' ? 'selected' : ''}`}
                                                     onClick={() => { setLugeTopperOption('round'); setLugeTopperFile(null); }}
                                                 >
-                                                    <img src="https://res.cloudinary.com/daigcmtfz/image/upload/v1766237791/sidebar_images/Topper%20Logos/Oval%20logo%20for%20as%20topper.jpg" alt="Round" />
+                                                    <LazyImage src="https://res.cloudinary.com/daigcmtfz/image/upload/v1766237791/sidebar_images/Topper%20Logos/Oval%20logo%20for%20as%20topper.jpg" alt="Round" placeholderH="80px" />
                                                     <span className="rp-picker-label">Round</span>
                                                     {lugeTopperOption === 'round' && <div className="rp-picker-check"><Check size={14}/></div>}
                                                 </div>
@@ -2051,7 +2053,7 @@ const ChatInterface = () => {
                                                     className={`rp-picker-item ${lugeTopperOption === 'crown' ? 'selected' : ''}`}
                                                     onClick={() => { setLugeTopperOption('crown'); setLugeTopperFile(null); }}
                                                 >
-                                                    <img src="https://res.cloudinary.com/daigcmtfz/image/upload/v1766237788/sidebar_images/Topper%20Logos/crown%20logo%20as%20topper.jpg" alt="Crown" />
+                                                    <LazyImage src="https://res.cloudinary.com/daigcmtfz/image/upload/v1766237788/sidebar_images/Topper%20Logos/crown%20logo%20as%20topper.jpg" alt="Crown" placeholderH="80px" />
                                                     <span className="rp-picker-label">Crown</span>
                                                     {lugeTopperOption === 'crown' && <div className="rp-picker-check"><Check size={14}/></div>}
                                                 </div>
@@ -2096,20 +2098,24 @@ const ChatInterface = () => {
                                                     </p>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                         {panel.selectedSculpture?.image && (
-                                                            <img
+                                                            <LazyImage
                                                                 src={panel.selectedSculpture.image}
                                                                 alt="Selected luge"
-                                                                style={{ width: '76px', height: '76px', objectFit: 'contain', borderRadius: '8px', background: 'var(--surface,#fff)' }}
+                                                                placeholderH="76px"
+                                                                wrapStyle={{ width: '76px', height: '76px', borderRadius: '8px', background: 'var(--surface,#fff)', flexShrink: 0 }}
+                                                                style={{ width: '76px', height: '76px', objectFit: 'contain' }}
                                                             />
                                                         )}
                                                         <span style={{ fontSize: '1.4rem', color: 'var(--text-muted,#94a3b8)', flexShrink: 0 }}>+</span>
-                                                        <img
+                                                        <LazyImage
                                                             src={lugeTopperOption === 'round'
                                                                 ? 'https://res.cloudinary.com/daigcmtfz/image/upload/v1766237791/sidebar_images/Topper%20Logos/Oval%20logo%20for%20as%20topper.jpg'
                                                                 : 'https://res.cloudinary.com/daigcmtfz/image/upload/v1766237788/sidebar_images/Topper%20Logos/crown%20logo%20as%20topper.jpg'
                                                             }
                                                             alt="Topper"
-                                                            style={{ width: '76px', height: '76px', objectFit: 'contain', borderRadius: '8px', background: 'var(--surface,#fff)' }}
+                                                            placeholderH="76px"
+                                                            wrapStyle={{ width: '76px', height: '76px', borderRadius: '8px', background: 'var(--surface,#fff)', flexShrink: 0 }}
+                                                            style={{ width: '76px', height: '76px', objectFit: 'contain' }}
                                                         />
                                                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted,#64748b)', margin: 0, flex: 1 }}>
                                                             The <strong>{lugeTopperOption}</strong> topper will sit on top of your {panel.selectedSculpture?.name || 'luge'}.
@@ -2223,10 +2229,12 @@ const ChatInterface = () => {
                                                             </p>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                                 {panel.selectedSculpture?.image && (
-                                                                    <img
+                                                                    <LazyImage
                                                                         src={panel.selectedSculpture.image}
                                                                         alt="Luge"
-                                                                        style={{ width: '76px', height: '76px', objectFit: 'contain', borderRadius: '8px', background: 'var(--surface,#fff)' }}
+                                                                        placeholderH="76px"
+                                                                        wrapStyle={{ width: '76px', height: '76px', borderRadius: '8px', background: 'var(--surface,#fff)', flexShrink: 0 }}
+                                                                        style={{ width: '76px', height: '76px', objectFit: 'contain' }}
                                                                     />
                                                                 )}
                                                                 <span style={{ fontSize: '1.4rem', color: 'var(--text-muted,#94a3b8)', flexShrink: 0 }}>+</span>
@@ -2352,7 +2360,7 @@ const ChatInterface = () => {
                                                 <div className="rp-picker-grid">
                                                     {categoryItems.bases.map((item, i) => (
                                                         <div key={i} className={`rp-picker-item ${panel.selectedBase?.name === item.name ? 'selected' : ''}`} onClick={() => selectBase(item)}>
-                                                            <img src={item.image} alt={item.name} />
+                                                            <LazyImage src={item.image} alt={item.name} placeholderH="80px" />
                                                             <span className="rp-picker-label">{item.name}</span>
                                                             {panel.selectedBase?.name === item.name && <div className="rp-picker-check"><Check size={14}/></div>}
                                                         </div>
@@ -2393,7 +2401,7 @@ const ChatInterface = () => {
                                                 <div className="rp-picker-grid">
                                                     {categoryItems.toppers.map((item, i) => (
                                                         <div key={i} className={`rp-picker-item ${panel.selectedTopper?.name === item.name ? 'selected' : ''}`} onClick={() => selectTopper(item)}>
-                                                            <img src={item.image} alt={item.name} />
+                                                            <LazyImage src={item.image} alt={item.name} placeholderH="80px" />
                                                             <span className="rp-picker-label">{item.name}</span>
                                                             {panel.selectedTopper?.name === item.name && <div className="rp-picker-check"><Check size={14}/></div>}
                                                         </div>
