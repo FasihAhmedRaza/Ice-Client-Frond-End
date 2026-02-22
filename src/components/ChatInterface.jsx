@@ -95,6 +95,9 @@ const ChatInterface = () => {
     const [standardLogoShape, setStandardLogoShape] = useState(null); // 'round' | 'square' | 'shape' | 'none'
     const [standardTextOption, setStandardTextOption] = useState(null); // 'names' | 'images' | 'both' | 'none'
     const [standardText, setStandardText] = useState('');
+    const [lugeTopperOption, setLugeTopperOption] = useState(null); // 'round' | 'crown' | 'custom'
+    const [lugeTopperFile, setLugeTopperFile] = useState(null);
+    const [lugeAddonLogoShape, setLugeAddonLogoShape] = useState(null); // 'square' | 'round' | 'custom'
     const [theme, setTheme] = useState(() => localStorage.getItem('cynx_theme') || 'light');
 
     const [wizardGalleryOpen, setWizardGalleryOpen] = useState(false);
@@ -163,6 +166,7 @@ const ChatInterface = () => {
     const customSculptureInputRef = useRef(null);
     const customBaseInputRef = useRef(null);
     const customTopperInputRef = useRef(null);
+    const lugeTopperInputRef = useRef(null);
     const filesRef = useRef([]);
 
     // Build category item lists from sidebarImages JSON
@@ -651,6 +655,26 @@ const ChatInterface = () => {
             parts.push(`Front decorative piece: ${lugeFrontPieceDesc || 'yes (no description provided)'}`);
         }
 
+        // All luge types: topper style
+        if (selectedLugeType && lugeTopperOption) {
+            const topperLabel = {
+                'round': 'round/oval logo holder on top',
+                'crown': 'crown-shaped topper with logo space',
+                'custom': 'custom logo outline shape as topper (client logo outline with white background and blue ice outline following the logo shape)',
+            }[lugeTopperOption];
+            parts.push(`Top logo/topper style: ${topperLabel}`);
+        }
+
+        // All luge types: add-on logo shape
+        if (selectedLugeType && (lugeLogoOption === 'addon' || lugeLogoOption === 'both') && lugeAddonLogoShape) {
+            const shapeLabel = {
+                'square': 'square/rectangular ice holder',
+                'round': 'circular ice holder',
+                'custom': 'custom outline (logo shape with white background and blue ice outline following the logo contour)',
+            }[lugeAddonLogoShape];
+            parts.push(`Add-on logo shape: ${shapeLabel}`);
+        }
+
         // Standard base/topper/logo (non-special categories)
         const isSpecialCategory = ['Ice Cubes', '3D Showpiece', 'Seafood Display', 'Standard Showpiece'].includes(sculptureCategory) || selectedLugeType;
         if (!isSpecialCategory) {
@@ -756,6 +780,27 @@ const ChatInterface = () => {
             prompts[idx] = `CLIENT LOGO — Place this logo as a printed paper card element on the showpiece. The card must have a solid white or colored ${shapePrompt} background. It should look like a real printed paper label or sign physically attached to the ice surface — fully colored and clearly readable. Do NOT change the sculpture shape.`;
             idx++;
         }
+        // Luge topper image
+        if (selectedLugeType && lugeTopperOption) {
+            if (lugeTopperOption === 'custom' && lugeTopperFile) {
+                filesToSend.push(lugeTopperFile);
+                prompts[idx] = 'CUSTOM TOPPER — place this logo as the top logo/topper on the luge, shaped as the logo outline with a white background like a sticker and a blue ice shape following the logo contour around it';
+                idx++;
+            } else if (lugeTopperOption === 'round') {
+                const file = await fetchImageAsFile(
+                    'https://res.cloudinary.com/daigcmtfz/image/upload/v1766237791/sidebar_images/Topper%20Logos/Oval%20logo%20for%20as%20topper.jpg',
+                    'round_topper.jpg'
+                );
+                if (file) { filesToSend.push(file); prompts[idx] = 'TOPPER — place this round/oval topper on top of the luge'; idx++; }
+            } else if (lugeTopperOption === 'crown') {
+                const file = await fetchImageAsFile(
+                    'https://res.cloudinary.com/daigcmtfz/image/upload/v1766237788/sidebar_images/Topper%20Logos/crown%20logo%20as%20topper.jpg',
+                    'crown_topper.jpg'
+                );
+                if (file) { filesToSend.push(file); prompts[idx] = 'TOPPER — place this crown-shaped topper on top of the luge'; idx++; }
+            }
+        }
+
         // Logo — all luge types
         if (panel.logoFile && selectedLugeType && lugeLogoOption) {
             filesToSend.push(panel.logoFile);
@@ -811,6 +856,9 @@ const ChatInterface = () => {
         setStandardLogoShape(null);
         setStandardTextOption(null);
         setStandardText('');
+        setLugeTopperOption(null);
+        setLugeTopperFile(null);
+        setLugeAddonLogoShape(null);
         setTextPrompt('');
         setImgToImgFiles([]);
         setImgToImgPrompt('');
@@ -1977,9 +2025,110 @@ const ChatInterface = () => {
                                     <div className="wizard-step-content wizard-extras-combined">
                                         <p className="wizard-hint">Customise your {panel.selectedSculpture?.name || 'luge'} below.</p>
 
+                                        {/* ── TOPPER / TOP LOGO SECTION (Luge only — 3 options) ── */}
+                                        <div className="extras-section">
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                                <h3 className="extras-section-title" style={{ margin: 0 }}>Top Logo / Topper</h3>
+                                                {lugeTopperOption && (
+                                                    <button onClick={() => { setLugeTopperOption(null); setLugeTopperFile(null); }} style={{ fontSize: '0.7rem', color: 'var(--text-muted,#94a3b8)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px' }}>
+                                                        × Clear
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                                                Choose the style for the top of your luge
+                                            </p>
+                                            <div className="rp-picker-grid">
+                                                <div
+                                                    className={`rp-picker-item ${lugeTopperOption === 'round' ? 'selected' : ''}`}
+                                                    onClick={() => { setLugeTopperOption('round'); setLugeTopperFile(null); }}
+                                                >
+                                                    <img src="https://res.cloudinary.com/daigcmtfz/image/upload/v1766237791/sidebar_images/Topper%20Logos/Oval%20logo%20for%20as%20topper.jpg" alt="Round" />
+                                                    <span className="rp-picker-label">Round</span>
+                                                    {lugeTopperOption === 'round' && <div className="rp-picker-check"><Check size={14}/></div>}
+                                                </div>
+                                                <div
+                                                    className={`rp-picker-item ${lugeTopperOption === 'crown' ? 'selected' : ''}`}
+                                                    onClick={() => { setLugeTopperOption('crown'); setLugeTopperFile(null); }}
+                                                >
+                                                    <img src="https://res.cloudinary.com/daigcmtfz/image/upload/v1766237788/sidebar_images/Topper%20Logos/crown%20logo%20as%20topper.jpg" alt="Crown" />
+                                                    <span className="rp-picker-label">Crown</span>
+                                                    {lugeTopperOption === 'crown' && <div className="rp-picker-check"><Check size={14}/></div>}
+                                                </div>
+                                                <div
+                                                    className={`rp-picker-item ${lugeTopperOption === 'custom' ? 'selected' : ''}`}
+                                                    onClick={() => setLugeTopperOption('custom')}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px', background: 'var(--surface-alt,#f0f4f8)', borderRadius: '8px', fontSize: '2rem' }}>✏️</div>
+                                                    <span className="rp-picker-label">Custom</span>
+                                                    {lugeTopperOption === 'custom' && <div className="rp-picker-check"><Check size={14}/></div>}
+                                                </div>
+                                            </div>
+
+                                            {/* Custom topper: upload logo */}
+                                            {lugeTopperOption === 'custom' && (
+                                                <div style={{ marginTop: '0.75rem' }}>
+                                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                                                        Your logo outline shape will be used as the topper — white background with a blue ice border following the logo shape.
+                                                    </p>
+                                                    <div className="rp-upload-zone" onClick={() => lugeTopperInputRef.current?.click()}>
+                                                        {lugeTopperFile ? (
+                                                            <div className="rp-file-preview">
+                                                                <img src={URL.createObjectURL(lugeTopperFile)} alt="custom topper" className="rp-thumb" />
+                                                                <span className="rp-file-name">{lugeTopperFile.name}</span>
+                                                                <button className="rp-remove" onClick={(e) => { e.stopPropagation(); setLugeTopperFile(null); }}><Trash2 size={14}/></button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="rp-upload-placeholder">
+                                                                <Upload size={18} /><span>Upload logo for custom topper</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <input type="file" ref={lugeTopperInputRef} accept="image/*" onChange={e => { if (e.target.files[0]) setLugeTopperFile(e.target.files[0]); }} style={{ display: 'none' }} />
+                                                </div>
+                                            )}
+
+                                            {/* Real-time demo preview */}
+                                            {lugeTopperOption && lugeTopperOption !== 'custom' && (
+                                                <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--surface-alt,#f0f4f8)', borderRadius: '12px', border: '1px solid var(--border,#e2e8f0)' }}>
+                                                    <p style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-secondary,#64748b)', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                                        How it looks on your luge
+                                                    </p>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                        {panel.selectedSculpture?.image && (
+                                                            <img
+                                                                src={panel.selectedSculpture.image}
+                                                                alt="Selected luge"
+                                                                style={{ width: '76px', height: '76px', objectFit: 'contain', borderRadius: '8px', background: 'var(--surface,#fff)' }}
+                                                            />
+                                                        )}
+                                                        <span style={{ fontSize: '1.4rem', color: 'var(--text-muted,#94a3b8)', flexShrink: 0 }}>+</span>
+                                                        <img
+                                                            src={lugeTopperOption === 'round'
+                                                                ? 'https://res.cloudinary.com/daigcmtfz/image/upload/v1766237791/sidebar_images/Topper%20Logos/Oval%20logo%20for%20as%20topper.jpg'
+                                                                : 'https://res.cloudinary.com/daigcmtfz/image/upload/v1766237788/sidebar_images/Topper%20Logos/crown%20logo%20as%20topper.jpg'
+                                                            }
+                                                            alt="Topper"
+                                                            style={{ width: '76px', height: '76px', objectFit: 'contain', borderRadius: '8px', background: 'var(--surface,#fff)' }}
+                                                        />
+                                                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted,#64748b)', margin: 0, flex: 1 }}>
+                                                            The <strong>{lugeTopperOption}</strong> topper will sit on top of your {panel.selectedSculpture?.name || 'luge'}.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
                                         {/* ── LOGO PLACEMENT ── */}
                                         <div className="extras-section">
-                                            <h3 className="extras-section-title">Logo</h3>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                <h3 className="extras-section-title" style={{ margin: 0 }}>Logo</h3>
+                                                {lugeLogoOption && (
+                                                    <button onClick={() => { setLugeLogoOption(null); setLugeAddonLogoShape(null); updatePanel('logoFile', null); }} style={{ fontSize: '0.7rem', color: 'var(--text-muted,#94a3b8)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px' }}>
+                                                        × Clear
+                                                    </button>
+                                                )}
+                                            </div>
                                             <div className="luge-option-cards">
                                                 {[
                                                     { key: 'top',   label: 'Top Logo Only',   desc: 'Logo on the top surface of the luge' },
@@ -1997,6 +2146,119 @@ const ChatInterface = () => {
                                                     </button>
                                                 ))}
                                             </div>
+
+                                            {/* Add-on logo shape selection — image cards */}
+                                            {(lugeLogoOption === 'addon' || lugeLogoOption === 'both') && (
+                                                <div style={{ marginTop: '0.75rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                                        <p style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary,#475569)', margin: 0 }}>
+                                                            Add-on Logo Shape
+                                                        </p>
+                                                        {lugeAddonLogoShape && (
+                                                            <button onClick={() => setLugeAddonLogoShape(null)} style={{ fontSize: '0.7rem', color: 'var(--text-muted,#94a3b8)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px' }}>
+                                                                × Clear
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                                                        White area = where your logo goes
+                                                    </p>
+                                                    <div className="rp-picker-grid">
+                                                        {/* Square */}
+                                                        <div
+                                                            className={`rp-picker-item ${lugeAddonLogoShape === 'square' ? 'selected' : ''}`}
+                                                            onClick={() => setLugeAddonLogoShape('square')}
+                                                        >
+                                                            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '80px' }}>
+                                                                <rect width="100" height="100" fill="#0284c7"/>
+                                                                <rect x="18" y="18" width="64" height="64" fill="white" rx="4"/>
+                                                                <rect x="26" y="26" width="48" height="48" fill="#e0f2fe" rx="2" stroke="#7dd3fc" strokeWidth="1.5" strokeDasharray="4,2"/>
+                                                                <text x="50" y="48" textAnchor="middle" fontSize="9" fill="#0ea5e9" fontFamily="sans-serif">YOUR</text>
+                                                                <text x="50" y="60" textAnchor="middle" fontSize="9" fill="#0ea5e9" fontFamily="sans-serif">LOGO</text>
+                                                            </svg>
+                                                            <span className="rp-picker-label">Square</span>
+                                                            {lugeAddonLogoShape === 'square' && <div className="rp-picker-check"><Check size={14}/></div>}
+                                                        </div>
+
+                                                        {/* Round */}
+                                                        <div
+                                                            className={`rp-picker-item ${lugeAddonLogoShape === 'round' ? 'selected' : ''}`}
+                                                            onClick={() => setLugeAddonLogoShape('round')}
+                                                        >
+                                                            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '80px' }}>
+                                                                <rect width="100" height="100" fill="#0284c7"/>
+                                                                <circle cx="50" cy="50" r="38" fill="white"/>
+                                                                <circle cx="50" cy="50" r="28" fill="#e0f2fe" stroke="#7dd3fc" strokeWidth="1.5" strokeDasharray="4,2"/>
+                                                                <text x="50" y="48" textAnchor="middle" fontSize="9" fill="#0ea5e9" fontFamily="sans-serif">YOUR</text>
+                                                                <text x="50" y="60" textAnchor="middle" fontSize="9" fill="#0ea5e9" fontFamily="sans-serif">LOGO</text>
+                                                            </svg>
+                                                            <span className="rp-picker-label">Round</span>
+                                                            {lugeAddonLogoShape === 'round' && <div className="rp-picker-check"><Check size={14}/></div>}
+                                                        </div>
+
+                                                        {/* Custom Outline (Ice Butcher style) */}
+                                                        <div
+                                                            className={`rp-picker-item ${lugeAddonLogoShape === 'custom' ? 'selected' : ''}`}
+                                                            onClick={() => setLugeAddonLogoShape('custom')}
+                                                        >
+                                                            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '80px' }}>
+                                                                <rect width="100" height="100" fill="#0284c7"/>
+                                                                {/* outer blue ice shape following logo contour */}
+                                                                <path d="M12,40 Q18,12 50,12 Q82,12 88,40 L90,68 Q84,90 50,90 Q16,90 10,68 Z" fill="#38bdf8"/>
+                                                                {/* inner white sticker background */}
+                                                                <path d="M20,42 Q24,20 50,20 Q76,20 80,42 L82,66 Q77,82 50,82 Q23,82 18,66 Z" fill="white"/>
+                                                                <text x="50" y="48" textAnchor="middle" fontSize="9" fill="#0ea5e9" fontFamily="sans-serif">YOUR</text>
+                                                                <text x="50" y="60" textAnchor="middle" fontSize="9" fill="#0ea5e9" fontFamily="sans-serif">LOGO</text>
+                                                            </svg>
+                                                            <span className="rp-picker-label">Custom</span>
+                                                            {lugeAddonLogoShape === 'custom' && <div className="rp-picker-check"><Check size={14}/></div>}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Live preview when shape selected */}
+                                                    {lugeAddonLogoShape && (
+                                                        <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'var(--surface-alt,#f0f4f8)', borderRadius: '12px', border: '1px solid var(--border,#e2e8f0)' }}>
+                                                            <p style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-secondary,#64748b)', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                                                How it looks on your luge
+                                                            </p>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                {panel.selectedSculpture?.image && (
+                                                                    <img
+                                                                        src={panel.selectedSculpture.image}
+                                                                        alt="Luge"
+                                                                        style={{ width: '76px', height: '76px', objectFit: 'contain', borderRadius: '8px', background: 'var(--surface,#fff)' }}
+                                                                    />
+                                                                )}
+                                                                <span style={{ fontSize: '1.4rem', color: 'var(--text-muted,#94a3b8)', flexShrink: 0 }}>+</span>
+                                                                {/* Shape preview */}
+                                                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{ width: '64px', height: '64px', flexShrink: 0 }}>
+                                                                    {lugeAddonLogoShape === 'square' && <>
+                                                                        <rect width="100" height="100" fill="#0284c7" rx="8"/>
+                                                                        <rect x="18" y="18" width="64" height="64" fill="white" rx="4"/>
+                                                                        <rect x="26" y="26" width="48" height="48" fill="#e0f2fe" rx="2" stroke="#7dd3fc" strokeWidth="1.5" strokeDasharray="4,2"/>
+                                                                    </>}
+                                                                    {lugeAddonLogoShape === 'round' && <>
+                                                                        <rect width="100" height="100" fill="#0284c7" rx="8"/>
+                                                                        <circle cx="50" cy="50" r="38" fill="white"/>
+                                                                        <circle cx="50" cy="50" r="28" fill="#e0f2fe" stroke="#7dd3fc" strokeWidth="1.5" strokeDasharray="4,2"/>
+                                                                    </>}
+                                                                    {lugeAddonLogoShape === 'custom' && <>
+                                                                        <rect width="100" height="100" fill="#0284c7" rx="8"/>
+                                                                        <path d="M12,40 Q18,12 50,12 Q82,12 88,40 L90,68 Q84,90 50,90 Q16,90 10,68 Z" fill="#38bdf8"/>
+                                                                        <path d="M20,42 Q24,20 50,20 Q76,20 80,42 L82,66 Q77,82 50,82 Q23,82 18,66 Z" fill="white"/>
+                                                                    </>}
+                                                                </svg>
+                                                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted,#64748b)', margin: 0, flex: 1 }}>
+                                                                    {lugeAddonLogoShape === 'square' && 'Square ice holder on the front face — white background where your logo sits.'}
+                                                                    {lugeAddonLogoShape === 'round' && 'Circular ice holder on the front face — white background where your logo sits.'}
+                                                                    {lugeAddonLogoShape === 'custom' && 'Your logo outline shape — white sticker background with blue ice border following your logo contour.'}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             {lugeLogoOption && (
                                                 <div style={{ marginTop: '0.75rem' }}>
                                                     <div className="rp-upload-zone" onClick={() => logoInputRef.current?.click()}>
@@ -2019,7 +2281,14 @@ const ChatInterface = () => {
 
                                         {/* ── ICE FINISH ── */}
                                         <div className="extras-section">
-                                            <h3 className="extras-section-title">Ice Finish</h3>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                <h3 className="extras-section-title" style={{ margin: 0 }}>Ice Finish</h3>
+                                                {lugeFinish && (
+                                                    <button onClick={() => setLugeFinish(null)} style={{ fontSize: '0.7rem', color: 'var(--text-muted,#94a3b8)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px' }}>
+                                                        × Clear
+                                                    </button>
+                                                )}
+                                            </div>
                                             <div className="luge-option-cards">
                                                 {[
                                                     { key: 'snowfilled',       label: 'Snowfilled',         desc: 'Frosted white interior — snofilled effect' },
@@ -2301,6 +2570,26 @@ const ChatInterface = () => {
                                                         {wantFrontPiece ? (lugeFrontPieceDesc || 'Yes (no description)') : 'No'}
                                                     </span>
                                                 </div>
+                                                {lugeTopperOption && (
+                                                    <div className="review-item">
+                                                        <span className="review-label">Topper</span>
+                                                        <span className="review-value">
+                                                            {lugeTopperOption === 'round' ? 'Round'
+                                                             : lugeTopperOption === 'crown' ? 'Crown'
+                                                             : `Custom${lugeTopperFile ? ` (${lugeTopperFile.name})` : ' — no file uploaded'}`}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {(lugeLogoOption === 'addon' || lugeLogoOption === 'both') && lugeAddonLogoShape && (
+                                                    <div className="review-item">
+                                                        <span className="review-label">Add-on Shape</span>
+                                                        <span className="review-value">
+                                                            {lugeAddonLogoShape === 'square' ? 'Square'
+                                                             : lugeAddonLogoShape === 'round' ? 'Round'
+                                                             : 'Custom Outline'}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </>
                                         )}
 
